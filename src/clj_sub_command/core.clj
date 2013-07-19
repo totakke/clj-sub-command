@@ -1,10 +1,14 @@
 (ns
     #^{:author "Toshiki Takeuchi",
        :doc "Process sub-command and the rest arguments."}
-  clj-sub-command.core)
+  clj-sub-command.core
+  (:use [clojure.string :only [blank? join]]))
 
 (defn print-help [desc cmdmap]
-  (println desc)
+  (if-not (blank? desc) (println desc))
+  (println (str "Usage: cmd [-h] {"
+                (join \, (map (comp name first) (seq cmdmap)))
+                "} ..."))
   (println "Sub-commands")
   (doseq [cmd (seq cmdmap)]
     (println (str "  " (name (first cmd)) "  " (:doc (second cmd))))))
@@ -24,6 +28,8 @@
            ((:cmd (:else ~cmdmap)) args#))))))
 
 (comment
+
+  ;; Example of usage:
 
  (defn bar1 [args]
    nil)
