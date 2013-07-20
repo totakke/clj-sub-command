@@ -1,51 +1,57 @@
 (ns
     #^{:author "Toshiki Takeuchi",
-       :doc "Process sub-command and the rest arguments."}
+       :doc "Process a command line sub-command."}
   clj-sub-command.core
   (:use [clojure.string :only [blank? join]]))
 
-(defn print-help [desc cmdmap]
+(defn print-help
+  "Print help for sub-commands."
+  [desc cmdinfo]
   (if-not (blank? desc) (println desc))
-  (println (str "Usage: cmd [-h] {"
-                (join \, (map (comp name first) (seq cmdmap)))
-                "} ..."))
   (println "Sub-commands")
-  (doseq [cmd (seq cmdmap)]
-    (println (str "  " (name (first cmd)) "  " (:doc (second cmd))))))
+  (doseq [cmd (seq cmdinfo)]
+    (if (< 1 (count (first cmd)))
+      (println (str "  " (join \, (map name (first cmd))) "  " (second cmd)))
+      (println (str "  " (name (ffirst cmd)) "  " (second cmd))))))
+
+(defn contains-command?
+  "Returns true if cmdvec includes cmd, false if not."
+  [cmdvec cmd]
+  (not= -1 (.indexOf cmdvec cmd)))
 
 (defmacro do-sub-command
-  "Binds the first argument to a sub-command and calls a specified function by
+  "Binds the first argument to a sub-command and calls a specified function with
   the rest arguments."
   [args desc & cmdspec]
-  (let [cmdmap (apply merge (for [[key info] (partition 2 cmdspec)]
-                              {key {:doc (if (string? (first info)) (first info) nil)
-                                    :cmd (last info)}}))]
+  (let [cmdinfo (vec (for [spec cmdspec]
+                       (vector (vec (filter keyword? spec))
+                               (first (filter string? spec))
+                               (last spec))))]
     `(let [[cmd# & args#] ~args]
        (if (or (= cmd# "-h") (= cmd# "--help"))
-         (print-help ~desc ~cmdmap)
-         (if-let [func# (:cmd ((keyword cmd#) ~cmdmap))]
+         (print-help ~desc ~cmdinfo)
+         (if-let [func# (some #(when (contains-command? (first %) (keyword cmd#)) (last %)) ~cmdinfo)]
            (apply func# args#)
-           ((:cmd (:else ~cmdmap)) args#))))))
+           (apply (some #(when (contains-command? (first %) :else) (last %)) ~cmdinfo) args#))))))
 
 (comment
 
   ;; Example of usage:
 
- (defn bar1 [args]
-   nil)
+  (defn plus [& args]
+    (->> (map #(Integer/parseInt %) args)
+         (apply +)))
 
- (defn bar2 [args]
-   nil)
+  (defn prod [& args]
+    (->> (map #(Integer/parseInt %) args)
+         (apply *)))
 
- (defn bar3 [args]
-   nil)
+  (defn hello [& args] "hello")
 
- (do-sub-command *command-line-args*
-   "Usage: cmd [foo1|foo2] & args"
-   :foo1 ["Runs bar1" bar1]
-   :foo2 ["Runs bar2" bar2]
-   :else ["Runs bar3" bar3])
+  (do-sub-command *command-line-args*
+    "Usage: cmd {plus,prod} ..."
+    [:plus "Plus args" plus]
+    [:prod "Multiply args" prod]
+    [:else "Hello" hello])
 
- )
-
-(defmacro with-sub-comand nil)
+  )
