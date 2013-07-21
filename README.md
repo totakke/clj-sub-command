@@ -2,6 +2,19 @@
 
 clj-sub-command is a little library to process a command line sub-command for Clojure.
 
+## Installation
+
+clj-sub-command has not been available on Clojars yet.
+Download source and install clj-sub-command to your local repository.
+
+    $ git clone https://github.com/totakke/clj-sub-command.git
+    $ cd clj-sub-command
+    $ lein install
+
+Then add the following dependency to your project.clj.
+
+    [clj-sub-command "0.1.0-SNAPSHOT"]
+
 ## Usage
 
 In your source, use `do-sub-command` macro to parse a sub-command.
@@ -31,9 +44,9 @@ You can use a sub-command in command line tools.
     $ lein run plus 2 3
     > 5
 
-Help is showed when adding `-h` or `--help` option before a sub-command.
+Help is showed when adding `-h` or `--help` option.
 
-    $ lein run -h
+    $ lein run -- -h
     > Usage: cmd {plus,prod} ...
     > Sub-commands
     >   plus  Plus args
