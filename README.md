@@ -34,7 +34,7 @@ In your source, use `do-sub-command` macro to parse a sub-command.
 
     (defn -main [& args]
       (do-sub-command args
-        "Usage: cmd {plus,prod} ..."
+        "Usage: cmd [-h] {plus,prod} ..."
         [:plus "Plus args" plus]
         [:prod "Multiply args" prod]
         [:else "Hello" hello]))

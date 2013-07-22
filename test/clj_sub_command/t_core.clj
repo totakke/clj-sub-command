@@ -1,6 +1,6 @@
 (ns clj-sub-command.t-core
   (:use midje.sweet
-        [clj-sub-command.core]))
+        clj-sub-command.core))
 
 (defn plus [& args]
   (->> (map #(Integer/parseInt %) args)
@@ -26,3 +26,28 @@
   (do-sub-command-test "cmd3" "3" "4") => 12
   (do-sub-command-test "cmd4" "3" "4") => 12
   (do-sub-command-test "cmd5") => "hello")
+
+(comment
+
+  (defn with-sub-command-test [& args]
+    (with-sub-command args
+      "Test for with-sub-command macro"
+      []
+      [subcmd subargs [[:sub1 "Plus args"]
+                       :sub2
+                       [:sub3 :sub4 "Multiply args"]
+                       :else]]
+      (condp = subcmd
+        :sub1 (apply plus subargs)
+        :sub2 (apply prod subargs)
+        :sub3 (apply prod subargs)
+        :else (apply hello subargs))))
+
+  (fact "about with-sub-command macro"
+    (with-sub-command-test "sub1" "2" "3") => 5
+    (with-sub-command-test "sub2" "2" "3") => 6
+    (with-sub-command-test "sub3" "3" "4") => 12
+    (with-sub-command-test "sub4" "3" "4") => 12
+    (with-sub-command-test "sub5") => "hello")
+
+  )
