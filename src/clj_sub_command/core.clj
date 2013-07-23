@@ -98,29 +98,29 @@
       (if argkey
         (let [[_ & [keybase]] (re-find #"^--?(.*)" argkey)]
           (cond
-            (= keybase nil) (recur r optmap)
-            (= keybase "") optmap
-            :else (if-let [found (key-data keybase)]
-                    (if (= \? (last (:sym found)))
-                      (recur r (assoc optmap (:sym found) true))
-                      (recur (next r) (assoc optmap (:sym found)
-                                             (if (or (nil? r) (= \- (ffirst r)))
-                                               (:default found)
-                                               (first r)))))
-                    (throw (Exception. (str "Unknown option " argkey))))))
+           (= keybase nil) (recur r optmap)
+           (= keybase "") optmap
+           :else (if-let [found (key-data keybase)]
+                   (if (= \? (last (:sym found)))
+                     (recur r (assoc optmap (:sym found) true))
+                     (recur (next r) (assoc optmap (:sym found)
+                                            (if (or (nil? r) (= \- (ffirst r)))
+                                              (:default found)
+                                              (first r)))))
+                   (throw (Exception. (str "Unknown option " argkey))))))
         optmap))))
 
 (defn make-cmdmap [subcmd cmdspec]
   (let [[_ cmdspec] cmdspec
         key-data (into {} (for [[syms] (map #(split-with keyword? (if (vector? %) % (vector %))) cmdspec)
                                 sym syms]
-                            [(name sym) {:sym sym}]))]
+                            [(name sym) {:sym (first syms)}]))]
     (if-let [found (key-data subcmd)]
       {:cmd (:sym found), :cmdspec cmdspec}
       (throw (Exception. (str "Unknown sub-command " subcmd))))))
 
 (defmacro with-sub-command
-  "TODO"
+  "Binds local options and a sub-command and sub-args to command-line args."
   [args desc optspec cmdspec & body]
   (let [optlocals (vec (map first optspec))
         [subcmd subargs] (first cmdspec)]
