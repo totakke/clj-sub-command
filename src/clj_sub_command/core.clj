@@ -12,13 +12,22 @@
 
 (defn print-help
   "Print help for sub-commands."
-  [desc cmdinfo]
-  (if-not (blank? desc) (println desc))
-  (println "Sub-commands")
-  (doseq [cmd (seq cmdinfo)]
-    (if (< 1 (count (first cmd)))
-      (println (str "  " (join \, (map name (first cmd))) "  " (second cmd)))
-      (println (str "  " (name (ffirst cmd)) "  " (second cmd))))))
+  ([desc cmdinfo]
+     (if-not (blank? desc) (println desc))
+     (println "Sub-commands")
+     (doseq [cmd (seq cmdinfo)]
+       (if (< 1 (count (first cmd)))
+         (println (str "  " (join \, (map name (first cmd))) "  " (second cmd)))
+         (println (str "  " (name (ffirst cmd)) "  " (second cmd))))))
+  ([desc optmap cmdinfo]
+     (if-not (blank? desc) (println desc))
+     (println "Options")
+     ;; TODO
+     (println "Sub-commands")
+     (doseq [cmd (seq cmdinfo)]
+       (if (< 1 (count (first cmd)))
+         (println (str "  " (join \, (map name (first cmd))) "  " (second cmd)))
+         (println (str "  " (name (ffirst cmd)) "  " (second cmd)))))))
 
 (defn contains-command?
   "Returns true if cmdvec includes cmd, false if not."
@@ -58,13 +67,41 @@
 
   )
 
+(defn- group-by-opt-args [args optspec]
+  (let [key-data (into {} (for [[syms _] (map #(split-with symbol? %)
+                                              (conj optspec '[help? h?]))
+                                sym syms]
+                            [(re-find #"^.*[^?]" (str sym))
+                             {:sym (str (first syms))}]))]
+    (loop [[argkey & [argval :as r]] args
+           ret {true [], false []}]
+      (if argkey
+        (let [[_ & [keybase]] (re-find #"^--?(.*)" argkey)]
+          (condp = keybase
+            nil (recur nil (update-in ret [false] #(apply conj % argkey r)))
+            "" (recur nil (update-in ret [false] #(apply conj % argkey r)))
+            (if-let [found (key-data keybase)]
+              (if (= \? (last (:sym found)))
+                (recur r (update-in ret [true] conj argkey))
+                (recur (next r) (update-in ret [true] conj argkey (first r))))
+              (throw (Exception. (str "Unknown option " argkey))))))
+        ret))))
+
+(defn make-optmap [args optspec]
+  )
+
 (defmacro with-sub-command
   "TODO"
-  [args desc opts cmdspec & body]
-  (let [cmdinfo (make-cmdinfo cmdspec)]
-    `(let [(first ~cmdspec) (first ~args)
+  [args desc optspec cmdspec & body]
+  (let [{opt-args true, [cmd & cmd-args] false} (group-by-opt-args args optspec)
+        opt-locals (vec (map first optspec))
+        cmdinfo (make-cmdinfo cmdspec)]
+    `(let [{:strs ~opt-locals :as optmap#} (make-optmap ~opt-args '~optspec)
+           (first ~cmdspec) (first ~args)
            (second ~cmdspec) (rest ~args)]
-       (do ~@body))))
+       (if (optmap# "help?")
+         (print-help ~desc optmap# ~cmdinfo)
+         (do ~@body)))))
 
 (comment
 
