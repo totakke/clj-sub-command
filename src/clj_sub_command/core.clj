@@ -56,18 +56,15 @@
 
   (defn fn34 [& args] ...)
 
-  (defn fn-else [& args] ...)
-
   (do-sub-command *command-line-args*
     "Usage: cmd [-h] {sub1,sub2,sub3,sub4} ..."
     [:sub1 "Desc about fn1" fn1]          ; [:sub-command-name description function]
     [:sub2 fn2]                           ; Description can be ommited
-    [:sub3 :sub4 "Desc aboud fn34" fn34]  ; Be able to bind multi-sub-commands to a function
-    [:else "Desc about fn-else" fn-else]) ; :else is called by a no-binded sub-command
+    [:sub3 :sub4 "Desc aboud fn34" fn34])  ; Be able to bind multi-sub-commands to a function
 
   )
 
-(defn- group-by-opt-args [args optspec]
+(defn group-by-optargs [args optspec]
   (let [key-data (into {} (for [[syms _] (map #(split-with symbol? %)
                                               (conj optspec '[help? h?]))
                                 sym syms]
@@ -88,19 +85,51 @@
         ret))))
 
 (defn make-optmap [args optspec]
-  )
+  (let [key-data (into {} (for [[syms [_ default]] (map #(split-with symbol? %)
+                                                        (conj optspec '[help? h?]))
+                                sym syms]
+                            [(re-find #"^.*[^?]" (str sym))
+                             {:sym (str (first syms)) :default default}]))
+        defaults (into {} (for [[_ {:keys [default sym]}] key-data
+                                :when default]
+                            [sym default]))]
+    (loop [[argkey & [argval :as r]] args
+           optmap (assoc defaults :optspec optspec)]
+      (if argkey
+        (let [[_ & [keybase]] (re-find #"^--?(.*)" argkey)]
+          (cond
+            (= keybase nil) (recur r optmap)
+            (= keybase "") optmap
+            :else (if-let [found (key-data keybase)]
+                    (if (= \? (last (:sym found)))
+                      (recur r (assoc optmap (:sym found) true))
+                      (recur (next r) (assoc optmap (:sym found)
+                                             (if (or (nil? r) (= \- (ffirst r)))
+                                               (:default found)
+                                               (first r)))))
+                    (throw (Exception. (str "Unknown option " argkey))))))
+        optmap))))
+
+(defn make-cmdmap [subcmd cmdspec]
+  (let [[_ cmdspec] cmdspec
+        key-data (into {} (for [[syms] (map #(split-with keyword? (if (vector? %) % (vector %))) cmdspec)
+                                sym syms]
+                            [(name sym) {:sym sym}]))]
+    (if-let [found (key-data subcmd)]
+      {:cmd (:sym found), :cmdspec cmdspec}
+      (throw (Exception. (str "Unknown sub-command " subcmd))))))
 
 (defmacro with-sub-command
   "TODO"
   [args desc optspec cmdspec & body]
-  (let [{opt-args true, [cmd & cmd-args] false} (group-by-opt-args args optspec)
-        opt-locals (vec (map first optspec))
-        cmdinfo (make-cmdinfo cmdspec)]
-    `(let [{:strs ~opt-locals :as optmap#} (make-optmap ~opt-args '~optspec)
-           (first ~cmdspec) (first ~args)
-           (second ~cmdspec) (rest ~args)]
+  (let [optlocals (vec (map first optspec))
+        [subcmd subargs] (first cmdspec)]
+    `(let [{optargs# true, [subcmd# & subargs#] false} (group-by-optargs ~args '~optspec)
+           {:strs ~optlocals :as optmap#} (make-optmap optargs# '~optspec)
+           {~subcmd :cmd :as cmdmap#} (make-cmdmap subcmd# '~cmdspec)
+           ~subargs subargs#]
        (if (optmap# "help?")
-         (print-help ~desc optmap# ~cmdinfo)
+         (print-help ~desc optmap# cmdmap#)
          (do ~@body)))))
 
 (comment
@@ -113,20 +142,16 @@
 
   (defn fn34 [& args] ...)
 
-  (defn fn-else [& args] ...)
-
   (with-sub-command *command-line-args*
     "Usage: cmd [-h] [-v] {sub1,sub2,sub3,sub4} ..."
-    [[verbose? v?]]                            ; Binds options, the same way as clojure.contrib.command-line/with-command-line
-    [sub args [[:sub1 "Desc about fn1"]        ; [:sub-command-name description function]
-               :sub2                           ; Description can be ommited
-               [:sub3 :sub4 "Desc aboud fn34"] ; First symbol is binded to subcmd
-               [:else "Desc about fn-else"]]]  ; :else is called by a no-binded sub-command
+    [[verbose? v?]]                                ; Binds options, the same way as clojure.contrib.command-line/with-command-line
+    [[sub args] [[:sub1 "Desc about fn1"]          ; [:sub-command-name description function]
+                 :sub2                             ; Description can be ommited
+                 [:sub3 :sub4 "Desc aboud fn34"]]] ; First symbol is binded to subcmd
     (binding [*debug-comments* verbose?]
       (condp = sub
         :sub1 (apply fn1 args)
         :sub2 (apply fn2 args)
-        :sub3 (apply fn34 args)
-        :else (apply fn-else args))))
+        :sub3 (apply fn34 args))))
 
   )
