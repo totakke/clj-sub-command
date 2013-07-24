@@ -1,6 +1,6 @@
 (ns
     #^{:author "Toshiki Takeuchi",
-       :doc "A little library to process a command line sub-command for Clojure."}
+       :doc "A simple sub-command parser for Clojure."}
   clj-sub-command.core
   (:use [clojure.string :only [blank? join]]))
 
@@ -10,8 +10,66 @@
                  (first (filter string? spec))
                  (last spec)))))
 
+(defn- align
+  "Align strings given as vectors of columns, with first vector
+   specifying right or left alignment (:r or :l) for each column."
+  [spec & rows]
+  (let [maxes (vec (for [n (range (count (first rows)))]
+                     (apply max (map (comp count #(nth % n)) rows))))
+        fmt (join " "
+                  (for [n (range (count maxes))]
+                    (str "%"
+                         (when-not (zero? (maxes n))
+                           (str (when (= (spec n) :l) "-") (maxes n)))
+                         "s")))]
+    (join "\n"
+          (for [row rows]
+            (apply format fmt row)))))
+
+(defn- rmv-q
+  "Remove ?"
+  [#^String s]
+  (if (.endsWith s "?")
+    (.substring s 0 (dec (count s)))
+    s))
+
+(defn print-options
+  "Prints options' names and descriptions."
+  [optspec]
+  (println "Options")
+  (println
+   (apply align [:l :l :l]
+          (for [spec optspec]
+            (let [[argnames [text default]] (split-with symbol? spec)
+                  [_ opt q] (re-find #"^(.*[^?])(\??)$"
+                                     (str (first argnames)))
+                  argnames  (map (comp rmv-q str) argnames)
+                  argnames
+                  (join ", "
+                        (for [arg argnames]
+                          (if (= 1 (count arg))
+                            (str "-" arg)
+                            (str "--" arg))))]
+              [(str "  " argnames (when (= "" q) " <arg>") " ")
+               text
+               (if-not default
+                 ""
+                 (str " [default " default "]"))])))))
+
+(defn print-sub-commands
+  "Prints sub-commands' names and descriptions."
+  [cmdspec]
+  (println "Sub-commands")
+  (println
+   (apply align [:l :l]
+          (for [spec cmdspec]
+            (let [[cmdkeys [text]] (split-with keyword? (if (vector? spec) spec (vector spec)))
+                  cmdnames (join ", " (map name cmdkeys))]
+              [(str "  " cmdnames " ")
+               (if (blank? text) "" text)])))))
+
 (defn print-help
-  "Print help for sub-commands."
+  "Prints help for sub-commands."
   ([desc cmdinfo]
      (if-not (blank? desc) (println desc))
      (println "Sub-commands")
@@ -19,15 +77,11 @@
        (if (< 1 (count (first cmd)))
          (println (str "  " (join \, (map name (first cmd))) "  " (second cmd)))
          (println (str "  " (name (ffirst cmd)) "  " (second cmd))))))
-  ([desc optmap cmdinfo]
+  ([desc optmap cmdmap]
      (if-not (blank? desc) (println desc))
-     (println "Options")
-     ;; TODO
-     (println "Sub-commands")
-     (doseq [cmd (seq cmdinfo)]
-       (if (< 1 (count (first cmd)))
-         (println (str "  " (join \, (map name (first cmd))) "  " (second cmd)))
-         (println (str "  " (name (ffirst cmd)) "  " (second cmd)))))))
+     (let [optspec (:optspec optmap), cmdspec (:cmdspec cmdmap)]
+      (if-not (empty? optspec) (print-options optspec))
+      (if-not (empty? cmdspec) (print-sub-commands cmdspec)))))
 
 (defn contains-command?
   "Returns true if cmdvec includes cmd, false if not."
@@ -147,7 +201,7 @@
     [[verbose? v?]]                                ; Binds options, the same way as clojure.contrib.command-line/with-command-line
     [[sub args] [[:sub1 "Desc about fn1"]          ; [:sub-command-name description function]
                  :sub2                             ; Description can be ommited
-                 [:sub3 :sub4 "Desc aboud fn34"]]] ; First symbol is binded to subcmd
+                 [:sub3 :sub4 "Desc aboud fn34"]]] ; sub is binded to the first symbol, :sub3 in this case
     (binding [*debug-comments* verbose?]
       (condp = sub
         :sub1 (apply fn1 args)
