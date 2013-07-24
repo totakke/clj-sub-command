@@ -15,9 +15,9 @@
 (defn do-sub-command-test [& args]
   (do-sub-command args
     "Test for do-sub-command macro"
-    [:cmd1 "Plus args" plus]
+    [:cmd1 plus "Plus args"]
     [:cmd2 prod]
-    [:cmd3 :cmd4 "Multiply args" prod]))
+    [:cmd3 :cmd4 prod "Multiply args"]))
 
 (fact "about do-sub-command macro"
   (do-sub-command-test "cmd1" "2" "3") => 5

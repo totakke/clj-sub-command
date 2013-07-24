@@ -4,12 +4,6 @@
   clj-sub-command.core
   (:use [clojure.string :only [blank? join]]))
 
-(defn- make-cmdinfo [cmdspec]
-  (vec (for [spec cmdspec]
-         (vector (vec (filter keyword? spec))
-                 (first (filter string? spec))
-                 (last spec)))))
-
 (defn- align
   "Align strings given as vectors of columns, with first vector
    specifying right or left alignment (:r or :l) for each column."
@@ -33,7 +27,7 @@
     (.substring s 0 (dec (count s)))
     s))
 
-(defn print-options
+(defn- print-options
   "Prints options' names and descriptions."
   [optspec]
   (println "Options")
@@ -56,14 +50,15 @@
                  ""
                  (str " [default " default "]"))])))))
 
-(defn print-sub-commands
+(defn- print-sub-commands
   "Prints sub-commands' names and descriptions."
   [cmdspec]
   (println "Sub-commands")
   (println
    (apply align [:l :l]
           (for [spec cmdspec]
-            (let [[cmdkeys [text]] (split-with keyword? (if (vector? spec) spec (vector spec)))
+            (let [[cmdkeys rest] (split-with keyword? (if (vector? spec) spec (vector spec)))
+                  [_ [text]] (split-with symbol? rest)
                   cmdnames (join ", " (map name cmdkeys))]
               [(str "  " cmdnames " ")
                (if (blank? text) "" text)])))))
@@ -87,36 +82,6 @@
   "Returns true if cmdvec includes cmd, false if not."
   [cmdvec cmd]
   (not= -1 (.indexOf cmdvec cmd)))
-
-(defmacro do-sub-command
-  "Binds the first argument to a sub-command and calls a specified function with
-  the rest arguments."
-  [args desc & cmdspec]
-  (let [cmdinfo (make-cmdinfo cmdspec)]
-    `(let [[cmd# & args#] ~args]
-       (if (or (= cmd# "-h") (= cmd# "--help"))
-         (print-help ~desc ~cmdinfo)
-         (if-let [func# (some #(when (contains-command? (first %) (keyword cmd#)) (last %)) ~cmdinfo)]
-           (apply func# args#)
-           (apply (some #(when (contains-command? (first %) :else) (last %)) ~cmdinfo) args#))))))
-
-(comment
-
-  ;; Usage of do-sub-command:
-
-  (defn fn1 [& args] ...)
-
-  (defn fn2 [& args] ...)
-
-  (defn fn34 [& args] ...)
-
-  (do-sub-command *command-line-args*
-    "Usage: cmd [-h] {sub1,sub2,sub3,sub4} ..."
-    [:sub1 "Desc about fn1" fn1]          ; [:sub-command-name description function]
-    [:sub2 fn2]                           ; Description can be ommited
-    [:sub3 :sub4 "Desc aboud fn34" fn34])  ; Be able to bind multi-sub-commands to a function
-
-  )
 
 (defn group-by-optargs [args optspec]
   (let [key-data (into {} (for [[syms _] (map #(split-with symbol? %)
@@ -165,19 +130,47 @@
         optmap))))
 
 (defn make-cmdmap [subcmd cmdspec]
-  (let [[_ cmdspec] cmdspec
-        key-data (into {} (for [[syms] (map #(split-with keyword? (if (vector? %) % (vector %))) cmdspec)
+  (let [key-data (into {} (for [[syms [fn _]] (map #(split-with keyword? (if (vector? %) % (vector %))) cmdspec)
                                 sym syms]
-                            [(name sym) {:sym (first syms)}]))]
+                            [(name sym) {:sym (first syms), :fn fn}]))]
     (if-let [found (key-data subcmd)]
-      {:cmd (:sym found), :cmdspec cmdspec}
+      {:cmd (:sym found), :do (:fn found), :cmdspec cmdspec}
       (throw (Exception. (str "Unknown sub-command " subcmd))))))
+
+(defmacro do-sub-command
+  "Binds the first argument to a sub-command and calls a specified function with
+  the rest arguments."
+  [args desc & cmdspec]
+  `(let [{optargs# true, [subcmd# & subargs#] false} (group-by-optargs ~args [])
+         optmap# (make-optmap optargs# [])
+         {fn# :do :as cmdmap#} (make-cmdmap subcmd# '~cmdspec)]
+     (if (optmap# "help?")
+       (print-help ~desc optmap# cmdmap#)
+       (apply (resolve fn#) subargs#))))
+
+(comment
+
+  ;; Usage of do-sub-command:
+
+  (defn fn1 [& args] ...)
+
+  (defn fn2 [& args] ...)
+
+  (defn fn34 [& args] ...)
+
+  (do-sub-command *command-line-args*
+    "Usage: cmd [-h] {sub1,sub2,sub3,sub4} ..."
+    [:sub1 fn1 "Desc about fn1"]          ; [:sub-command-name function description]
+    [:sub2 fn2]                           ; Description can be ommited
+    [:sub3 :sub4 fn34 "Desc aboud fn34"]) ; Be able to bind multi-sub-commands to a function
+
+  )
 
 (defmacro with-sub-command
   "Binds local options and a sub-command and sub-args to command-line args."
   [args desc optspec cmdspec & body]
   (let [optlocals (vec (map first optspec))
-        [subcmd subargs] (first cmdspec)]
+        [[subcmd subargs] cmdspec] cmdspec]
     `(let [{optargs# true, [subcmd# & subargs#] false} (group-by-optargs ~args '~optspec)
            {:strs ~optlocals :as optmap#} (make-optmap optargs# '~optspec)
            {~subcmd :cmd :as cmdmap#} (make-cmdmap subcmd# '~cmdspec)
@@ -199,7 +192,7 @@
   (with-sub-command *command-line-args*
     "Usage: cmd [-h] [-v] {sub1,sub2,sub3,sub4} ..."
     [[verbose? v?]]                                ; Binds options, the same way as clojure.contrib.command-line/with-command-line
-    [[sub args] [[:sub1 "Desc about fn1"]          ; [:sub-command-name description function]
+    [[sub args] [[:sub1 "Desc about fn1"]          ; [:sub-command-name description]
                  :sub2                             ; Description can be ommited
                  [:sub3 :sub4 "Desc aboud fn34"]]] ; sub is binded to the first symbol, :sub3 in this case
     (binding [*debug-comments* verbose?]
