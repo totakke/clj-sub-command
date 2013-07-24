@@ -10,8 +10,6 @@
   (->> (map #(Integer/parseInt %) args)
        (apply *)))
 
-(defn hello [& args] "hello")
-
 (defn do-sub-command-test [& args]
   (do-sub-command args
     "Test for do-sub-command macro"
