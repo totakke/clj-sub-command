@@ -78,11 +78,6 @@
       (if-not (empty? optspec) (print-options optspec))
       (if-not (empty? cmdspec) (print-sub-commands cmdspec)))))
 
-(defn contains-command?
-  "Returns true if cmdvec includes cmd, false if not."
-  [cmdvec cmd]
-  (not= -1 (.indexOf cmdvec cmd)))
-
 (defn group-by-optargs [args optspec]
   (let [key-data (into {} (for [[syms _] (map #(split-with symbol? %)
                                               (conj optspec '[help? h?]))
@@ -133,9 +128,8 @@
   (let [key-data (into {} (for [[syms [fn _]] (map #(split-with keyword? (if (vector? %) % (vector %))) cmdspec)
                                 sym syms]
                             [(name sym) {:sym (first syms), :fn fn}]))]
-    (if-let [found (key-data subcmd)]
-      {:cmd (:sym found), :do (:fn found), :cmdspec cmdspec}
-      (throw (Exception. (str "Unknown sub-command " subcmd))))))
+    (let [found (key-data subcmd)]
+      {:cmd (:sym found), :do (:fn found), :cmdspec cmdspec})))
 
 (defmacro do-sub-command
   "Binds the first argument to a sub-command and calls a specified function with
@@ -146,7 +140,9 @@
          {fn# :do :as cmdmap#} (make-cmdmap subcmd# '~cmdspec)]
      (if (optmap# "help?")
        (print-help ~desc optmap# cmdmap#)
-       (apply (resolve fn#) subargs#))))
+       (if (nil? fn#)
+         (throw (Exception. (str "Unknown sub-command " subcmd#)))
+         (apply (resolve fn#) subargs#)))))
 
 (comment
 
@@ -177,7 +173,9 @@
            ~subargs subargs#]
        (if (optmap# "help?")
          (print-help ~desc optmap# cmdmap#)
-         (do ~@body)))))
+         (if (nil? ~subcmd)
+           (throw (Exception. (str "Unknown sub-command " subcmd#)))
+           (do ~@body))))))
 
 (comment
 

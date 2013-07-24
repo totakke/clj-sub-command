@@ -15,15 +15,18 @@
 (defn do-sub-command-test [& args]
   (do-sub-command args
     "Test for do-sub-command macro"
-    [:cmd1 plus "Plus args"]
-    [:cmd2 prod]
-    [:cmd3 :cmd4 prod "Multiply args"]))
+    [:sub1 plus "Plus args"]
+    [:sub2 prod]
+    [:sub3 :sub4 prod "Multiply args"]))
 
 (fact "about do-sub-command macro"
-  (do-sub-command-test "cmd1" "2" "3") => 5
-  (do-sub-command-test "cmd2" "2" "3") => 6
-  (do-sub-command-test "cmd3" "3" "4") => 12
-  (do-sub-command-test "cmd4" "3" "4") => 12)
+  (do-sub-command-test "sub1" "2" "3") => 5
+  (do-sub-command-test "sub2" "2" "3") => 6
+  (do-sub-command-test "sub3" "3" "4") => 12
+  (do-sub-command-test "sub4" "3" "4") => 12
+  (do-sub-command-test "sub5" "3" "4") => (throws Exception)
+  (do-sub-command-test "-h") => nil?
+  (do-sub-command-test "-h" "sub1") => nil?)
 
 (defn with-sub-command-test [& args]
   (with-sub-command args
@@ -41,4 +44,7 @@
   (with-sub-command-test "sub1" "2" "3") => 5
   (with-sub-command-test "sub2" "2" "3") => 6
   (with-sub-command-test "sub3" "3" "4") => 12
-  (with-sub-command-test "sub4" "3" "4") => 12)
+  (with-sub-command-test "sub4" "3" "4") => 12
+  (with-sub-command-test "sub5" "3" "4") => (throws Exception)
+  (with-sub-command-test "-h") => nil?
+  (with-sub-command-test "-h" "sub1") => nil?)
