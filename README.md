@@ -4,10 +4,7 @@ clj-sub-command is a simple sub-command parser for Clojure.
 
 ## Installation
 
-clj-sub-command is available from Clojars classic repository.
-
-    :repositories [["clojars classic" "http://clojars.org/repo/"]]
-    :dependencies [[clj-sub-command "0.1.0-SNAPSHOT"]]
+clj-sub-command is available as a Maven artifact from [Clojars](https://clojars.org/clj-sub-command).
 
 ## Usage
 
