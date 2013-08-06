@@ -164,8 +164,10 @@
 
 (defmacro with-sub-command
   "Binds local options and a sub-command and sub-args to command-line args."
-  [args desc optspec cmdspec & body]
-  (let [optlocals (vec (map first optspec))
+  [args desc spec & body]
+  (let [optspec (vec (drop-last  spec))
+        cmdspec (last spec)
+        optlocals (vec (map first optspec))
         [[subcmd subargs] cmdspec] cmdspec]
     `(let [{optargs# true, [subcmd# & subargs#] false} (group-by-optargs ~args '~optspec)
            {:strs ~optlocals :as optmap#} (make-optmap optargs# '~optspec)
@@ -188,11 +190,12 @@
   (defn fn34 [& args] ...)
 
   (with-sub-command *command-line-args*
-    "Usage: cmd [-h] [-v] {sub1,sub2,sub3,sub4} ..."
-    [[verbose? v?]]                                ; Binds options, the same way as clojure.contrib.command-line/with-command-line
-    [[sub args] [[:sub1 "Desc about fn1"]          ; [:sub-command-name description]
-                 :sub2                             ; Description can be ommited
-                 [:sub3 :sub4 "Desc aboud fn34"]]] ; sub is binded to the first symbol, :sub3 in this case
+    "Usage: cmd [-h] [-v] [--version] {sub1,sub2,sub3,sub4} ..."
+    [[verbose? v?]                                   ; Binds options, the same way as clojure.contrib.command-line/with-command-line
+     [version? "Print version" false]
+     [[sub args] [[:sub1 "Desc about fn1"]           ; [:sub-command-name description]
+                  :sub2                              ; Description can be ommited
+                  [:sub3 :sub4 "Desc aboud fn34"]]]] ; sub is binded to the first symbol, :sub3 in this case
     (binding [*debug-comments* verbose?]
       (condp = sub
         :sub1 (apply fn1 args)
