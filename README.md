@@ -7,8 +7,7 @@ clj-sub-command is a simple sub-command parser for Clojure.
 clj-sub-command is available from Clojars classic repository.
 
     :repositories [["clojars classic" "http://clojars.org/repo/"]]
-    :dependencies [...
-                   [clj-sub-command "0.1.0-SNAPSHOT"]]
+    :dependencies [[clj-sub-command "0.1.0-SNAPSHOT"]]
 
 ## Usage
 
@@ -23,12 +22,10 @@ clj-sub-command provides two convenient macros: `do-sub-command` and `with-sub-c
   (:use clj-sub-command.core))
 
 (defn plus [& args]
-  (->> (map #(Integer/parseInt %) args)
-       (apply +)))
+  (reduce + (map #(Integer/parseInt %) args)))
 
 (defn prod [& args]
-  (->> (map #(Integer/parseInt %) args)
-       (apply *)))
+  (reduce * (map #(Integer/parseInt %) args)))
 
 (defn -main [& args]
   (do-sub-command args
@@ -46,9 +43,9 @@ This binds local options and a sub-command and arguments of the sub-command to c
 (defn -main [& args]
   (with-sub-command args
     "Usage: calc [-h] [-v] {plus,prod} ..."
-    [[version? v? "Print version"]]        ; Binds options in the same way as with-command-line
-    [[sub args] [[:plus "Plus args"]       ; [:sub-command-name description]
-                 [:prod "Multiply args"]]]
+    [[version? v? "Print version"]           ; Binds options in the same way as with-command-line.
+     [[sub args] [[:plus "Plus args"]        ; [:sub-command-name description]
+                  [:prod "Multiply args"]]]]
     (if version?
       (println "0.1.0-SNAPSHOT")
       (condp = sub
