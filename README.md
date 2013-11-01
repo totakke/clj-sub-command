@@ -6,6 +6,14 @@ clj-sub-command is a simple sub-command parser for Clojure.
 
 clj-sub-command is available as a Maven artifact from [Clojars][1].
 
+Latest stable release is version 0.1.0.
+
+For using with leiningen, add the following dependency:
+
+```
+[clj-sub-command "0.1.0"]
+```
+
 ## Usage
 
 clj-sub-command provides two convenient macros: `do-sub-command` and `with-sub-command`.
@@ -16,7 +24,7 @@ clj-sub-command provides two convenient macros: `do-sub-command` and `with-sub-c
 
 ```clojure
 (ns calc.core
-  (:use clj-sub-command.core))
+  (:require [clj-sub-command.core :refer :all]))
 
 (defn plus [& args]
   (reduce + (map #(Integer/parseInt %) args)))
@@ -72,24 +80,22 @@ $ lein run -- -h
 ### Use with another command-line parser
 
 I recommend using clj-sub-command with another command-line parser for parsing the rest arguments.
-(e.g. [`clojure.contrib.command-line/with-command-line`][2])
+(e.g. [tools.cli][3])
 
 ```clojure
 (ns foo.core
-  (:use clj-sub-command.core
-        clojure.contrib.command-line))
+  (:require [clj-sub-command.core :refer [do-sub-command]]
+            [clojure.tools.cli :refer [cli]]))
 
 (defn f1 [& args]
-  (with-command-line args
-    "Usage: foo cmd1 [--opt] file [file ...]"
-    [[opt? "Desc for opt" false]
-     res]
-    (if opt?
+  (let [[opt _] (cli args
+                     "Usage: foo cmd1 [-v] file [file ...]"
+                     ["-v" "--[no-]verbose" :default true])]
+    (if (:verbose opt)
       ...)))
 
 (defn f2 [& args]
-  (with-command-line args
-    ...))
+    ...)
 
 (defn -main [& args]
   (do-sub-command args
@@ -106,3 +112,4 @@ Distributed under the Eclipse Public License, the same as Clojure.
 
 [1]: https://clojars.org/clj-sub-command
 [2]: http://clojuredocs.org/clojure_contrib/clojure.contrib.command-line/with-command-line
+[3]: https://github.com/clojure/tools.cli
