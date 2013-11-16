@@ -170,4 +170,4 @@
         banner (with-out-str (banner-for desc options commands))
         [options _] (apply-options options optargs)
         command (command-for cmdarg commands)]
-    [options command banner]))
+    [options command cmdspecs banner]))
