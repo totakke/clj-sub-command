@@ -6,102 +6,123 @@ clj-sub-command is a simple sub-command parser for Clojure.
 
 clj-sub-command is available as a Maven artifact from [Clojars][1].
 
-Latest stable release is version 0.1.0.
+Latest stable release is version 0.2.0.
 
 For using with leiningen, add the following dependency:
 
 ```
-[clj-sub-command "0.1.0"]
+[clj-sub-command "0.2.0"]
 ```
 
 ## Usage
 
-clj-sub-command provides two convenient macros: `do-sub-command` and `with-sub-command`.
+```clojure
+(require '[clj-sub-command.core :refer [sub-command]])
 
-### do-sub-command
+(sub-command args
+             "Usage: cmd [-v] {cmd1,cmd2} ..."
+             :options  [["-p" "--port" "Listen on this port :parse-fn #(Integer. %)]
+                        ["--host" "The hostname" :default "localhost"]
+                        ["-v" "--[no-]verbose" :default true]]
+             :commands [["cmd1" "Description for cmd1"]
+                        ["cmd2" "Description for cmd2"]])
+```
 
-`do-sub-command` parses command-line arguments and calls a corresponded function with the rest of the arguments.
+with args of:
 
 ```clojure
-(ns calc.core
-  (:require [clj-sub-command.core :refer :all]))
-
-(defn plus [& args]
-  (reduce + (map #(Integer/parseInt %) args)))
-
-(defn prod [& args]
-  (reduce * (map #(Integer/parseInt %) args)))
-
-(defn -main [& args]
-  (do-sub-command args
-    "Usage: calc [-h] {plus,prod} ..."
-    [:plus calc.core/plus "Plus all arguments"] ; [:sub-cmd-name f desc]
-    [:prod calc.core/prod "Multiply all arguments"]))
+["-p" 8080
+ "--no-verbose"
+ "cmd1" "--log-directory" "/tmp" "some-file"]
 ```
 
-### with-sub-command
+will return a vector containing four elements:
 
-`with-sub-command` is more flexible.
-This binds local options in the same way as [`clojure.contrib.command-line/with-command-line`][2], and this binds a sub-command and the rest arguments.
+1) a map with the option names picked out for you as keywords:
 
 ```clojure
-(defn -main [& args]
-  (with-sub-command args
-    "Usage: calc [-h] [-v] {plus,prod} ..."
-    [[version? v? "Print version"]    ; Binds options in the same way as with-command-line.
-     [[sub args] [[:plus "Plus args"] ; [:sub-cmd-name desc]
-                  [:prod "Multiply args"]]]]
-    (if version?
-      (println "0.1.0-SNAPSHOT")
-      (condp = sub
-        :plus (apply plus args)
-        :prod (apply prod args)))))
+{:port    8080
+ :host    "localhost"
+ :verbose false}
 ```
 
-### Run with leiningen
+2) a keyword to indicate the selected sub command:
 
-```bash
-$ lein run plus 2 3
-> 5
+```clojure
+:cmd1
 ```
 
-Help is showed when adding `-h` or `--help` option.
+3) a vector of the rest arguments:
 
-```bash
-$ lein run -- -h
-> Usage: calc [-h] [-v] {plus,prod} ...
-> Options
->   --version, -v  Print version
-> Sub-commands
->   plus  Plus all arguments
->   prod  Multiply all arguments
+```clojure
+["--log-directory" "/tmp" "some-file"]
 ```
 
-### Use with another command-line parser
+4) and a documentation string to use to provide help:
+
+```clojure
+Usage: cmd [-v] {cmd1,cmd2} ...
+
+ Options                      Default    Desc
+ -------                      -------    ----
+ -p, --port                              Listen on this port
+ --host                       localhost  The hostname
+ -v, --no-verbose, --verbose  true
+
+ Command   Desc
+ -------   ----
+ cmd1      Description for cmd1
+ cmd2      Description for cmd2
+
+```
+
+### Help document
+
+The fourth item in the resulting vector is a banner useful for providing help to the user:
+
+```clojure
+(let [[opts cmd args help] (sub-command args
+                                        :options  [["-h" "--help" "Show help" :default false :flag true]]
+                                        :commands [["cmd1"] ["cmd2"]])]
+  (when (:help opts)
+    (println help)
+    (System/exit 0))
+  ...)
+```
+
+### Example
 
 I recommend using clj-sub-command with another command-line parser for parsing the rest arguments.
-(e.g. [tools.cli][3])
+(e.g. [tools.cli][2])
 
 ```clojure
 (ns foo.core
-  (:require [clj-sub-command.core :refer [do-sub-command]]
+  (:require [clj-sub-command.core :refer [sub-command]]
             [clojure.tools.cli :refer [cli]]))
 
-(defn f1 [& args]
+(defn f1 [args]
   (let [[opt _] (cli args
                      "Usage: foo cmd1 [-v] file [file ...]"
                      ["-v" "--[no-]verbose" :default true])]
     (if (:verbose opt)
       ...)))
 
-(defn f2 [& args]
-    ...)
+(defn f2 [args]
+  ...)
 
 (defn -main [& args]
-  (do-sub-command args
-    "Usage: foo [-h] {cmd1,cmd2} ..."
-    [:cmd1 foo.core/f1 "Desc for f1"]
-    [:cmd2 foo.core/f2 "Desc for f2"]))
+  (let [[opts cmd args help] (sub-command args
+                                          "Usage: foo [-h] {cmd1,cmd2} ..."
+                                          :options  [["-h" "--help" "Show help" :default false :flag true]]
+                                          :commands [["cmd1" "Description for cmd1"]
+                                                     ["cmd2" "Description for cmd2"]])]
+  (when (:help opts)
+    (println help)
+    (System/exit 0))
+  (case cmd
+    :cmd1 (f1 args)
+    :cmd2 (f2 args)
+    (println help))))
 ```
 
 ## License
@@ -111,5 +132,4 @@ Copyright © 2013 Toshiki Takeuchi
 Distributed under the Eclipse Public License, the same as Clojure.
 
 [1]: https://clojars.org/clj-sub-command
-[2]: http://clojuredocs.org/clojure_contrib/clojure.contrib.command-line/with-command-line
-[3]: https://github.com/clojure/tools.cli
+[2]: https://github.com/clojure/tools.cli
