@@ -1,205 +1,148 @@
-(ns
-    #^{:author "Toshiki Takeuchi",
-       :doc "A simple sub-command parser for Clojure."}
+(ns ^{:author "Toshiki Takeuchi",
+      :doc "A simple sub-command parser for Clojure."}
   clj-sub-command.core
-  (:use [clojure.string :only [blank? join]]))
+  (:refer-clojure :exclude [replace])
+  (:require [clojure.string :refer [blank? join replace]]
+            [clojure.pprint :refer [pprint cl-format]]))
 
-(defn- align
-  "Align strings given as vectors of columns, with first vector
-   specifying right or left alignment (:r or :l) for each column."
-  [spec & rows]
-  (let [maxes (vec (for [n (range (count (first rows)))]
-                     (apply max (map (comp count #(nth % n)) rows))))
-        fmt (join " "
-                  (for [n (range (count maxes))]
-                    (str "%"
-                         (when-not (zero? (maxes n))
-                           (str (when (= (spec n) :l) "-") (maxes n)))
-                         "s")))]
-    (join "\n"
-          (for [row rows]
-            (apply format fmt row)))))
+(defn- build-doc [{:keys [switches docs default]}]
+  [(apply str (interpose ", " switches))
+   (or (str default) "")
+   (or docs "")])
 
-(defn- rmv-q
-  "Remove ?"
-  [#^String s]
-  (if (.endsWith s "?")
-    (.substring s 0 (dec (count s)))
-    s))
+(defn- banner-for [desc specs]
+  (when desc
+    (println desc)
+    (println))
+  (let [docs (into (map build-doc specs)
+                   [["--------" "-------" "----"]
+                    ["Switches" "Default" "Desc"]])
+        max-cols (->> (for [d docs] (map count d))
+                      (apply map (fn [& c] (apply vector c)))
+                      (map #(apply max %)))
+        vs (for [d docs]
+             (mapcat (fn [& x] (apply vector x)) max-cols d))]
+    (doseq [v vs]
+      (cl-format true "~{ ~vA  ~vA  ~vA ~}" v)
+      (prn))))
 
-(defn- print-options
-  "Prints options' names and descriptions."
-  [optspec]
-  (println "Options")
-  (println
-   (apply align [:l :l :l]
-          (for [spec optspec]
-            (let [[argnames [text default]] (split-with symbol? spec)
-                  [_ opt q] (re-find #"^(.*[^?])(\??)$"
-                                     (str (first argnames)))
-                  argnames  (map (comp rmv-q str) argnames)
-                  argnames
-                  (join ", "
-                        (for [arg argnames]
-                          (if (= 1 (count arg))
-                            (str "-" arg)
-                            (str "--" arg))))]
-              [(str "  " argnames (when (= "" q) " <arg>") " ")
-               text
-               (if-not default
-                 ""
-                 (str " [default " default "]"))])))))
+(defn- name-for [k]
+  (replace k #"^--no-|^--\[no-\]|^--|^-" ""))
 
-(defn- print-sub-commands
-  "Prints sub-commands' names and descriptions."
-  [cmdspec]
-  (println "Sub-commands")
-  (println
-   (apply align [:l :l]
-          (for [spec cmdspec]
-            (let [[cmdkeys rest] (split-with keyword? (if (vector? spec) spec (vector spec)))
-                  [_ [text]] (split-with symbol? rest)
-                  cmdnames (join ", " (map name cmdkeys))]
-              [(str "  " cmdnames " ")
-               (if (blank? text) "" text)])))))
+(defn- flag-for [^String v]
+  (not (.startsWith v "--no-")))
 
-(defn print-help
-  "Prints help for sub-commands."
-  ([desc cmdinfo]
-     (if-not (blank? desc) (println desc))
-     (println "Sub-commands")
-     (doseq [cmd (seq cmdinfo)]
-       (if (< 1 (count (first cmd)))
-         (println (str "  " (join \, (map name (first cmd))) "  " (second cmd)))
-         (println (str "  " (name (ffirst cmd)) "  " (second cmd))))))
-  ([desc optmap cmdmap]
-     (if-not (blank? desc) (println desc))
-     (let [optspec (:optspec optmap), cmdspec (:cmdspec cmdmap)]
-      (if-not (empty? optspec) (print-options optspec))
-      (if-not (empty? cmdspec) (print-sub-commands cmdspec)))))
+(defn- opt? [^String x]
+  (.startsWith x "-"))
 
-(defn group-by-optargs [args optspec]
-  (let [key-data (into {} (for [[syms _] (map #(split-with symbol? %)
-                                              (conj optspec '[help? h?]))
-                                sym syms]
-                            [(re-find #"^.*[^?]" (str sym))
-                             {:sym (str (first syms))}]))]
-    (loop [[argkey & [argval :as r]] args
-           ret {true [], false []}]
-      (if argkey
-        (let [[_ & [keybase]] (re-find #"^--?(.*)" argkey)]
-          (condp = keybase
-            nil (recur nil (update-in ret [false] #(apply conj % argkey r)))
-            "" (recur nil (update-in ret [false] #(apply conj % argkey r)))
-            (if-let [found (key-data keybase)]
-              (if (= \? (last (:sym found)))
-                (recur r (update-in ret [true] conj argkey))
-                (recur (next r) (update-in ret [true] conj argkey (first r))))
-              (throw (Exception. (str "Unknown option " argkey))))))
-        ret))))
+(defn- flag? [^String x]
+  (.startsWith x "--[no-]"))
 
-(defn make-optmap [args optspec]
-  (let [key-data (into {} (for [[syms [_ default]] (map #(split-with symbol? %)
-                                                        (conj optspec '[help? h?]))
-                                sym syms]
-                            [(re-find #"^.*[^?]" (str sym))
-                             {:sym (str (first syms)) :default default}]))
-        defaults (into {} (for [[_ {:keys [default sym]}] key-data
-                                :when default]
-                            [sym default]))]
-    (loop [[argkey & [argval :as r]] args
-           optmap (assoc defaults :optspec optspec)]
-      (if argkey
-        (let [[_ & [keybase]] (re-find #"^--?(.*)" argkey)]
-          (cond
-           (= keybase nil) (recur r optmap)
-           (= keybase "") optmap
-           :else (if-let [found (key-data keybase)]
-                   (if (= \? (last (:sym found)))
-                     (recur r (assoc optmap (:sym found) true))
-                     (recur (next r) (assoc optmap (:sym found)
-                                            (if (or (nil? r) (= \- (ffirst r)))
-                                              (:default found)
-                                              (first r)))))
-                   (throw (Exception. (str "Unknown option " argkey))))))
-        optmap))))
+(defn- end-of-args? [x]
+  (= "--" x))
 
-(defn make-cmdmap [subcmd cmdspec]
-  (let [key-data (into {} (for [[syms [fn _]] (map #(split-with keyword? (if (vector? %) % (vector %))) cmdspec)
-                                sym syms]
-                            [(name sym) {:sym (first syms), :fn fn}]))]
-    (let [found (key-data subcmd)]
-      {:cmd (:sym found), :do (:fn found), :cmdspec cmdspec})))
+(defn- option-for
+  [arg options]
+  (->> options
+       (filter (fn [s]
+                 (let [switches (set (s :switches))]
+                   (contains? switches arg))))
+       first))
 
-(defmacro do-sub-command
-  "Binds the first argument to a sub-command and calls a specified function with
-  the rest arguments."
-  [args desc & cmdspec]
-  `(let [{optargs# true, [subcmd# & subargs#] false} (group-by-optargs ~args [])
-         optmap# (make-optmap optargs# [])
-         {fn# :do :as cmdmap#} (make-cmdmap subcmd# '~cmdspec)]
-     (if (optmap# "help?")
-       (print-help ~desc optmap# cmdmap#)
-       (if (nil? fn#)
-         (throw (Exception. (str "Unknown sub-command " subcmd#)))
-         (apply (resolve fn#) subargs#)))))
+(defn- default-values-for
+  [specs]
+  (reduce (fn [m s]
+            (if (contains? s :default)
+              ((:assoc-fn s) m (:name s) (:default s))
+              m))
+          {} specs))
 
-(comment
+(defn- apply-options
+  [specs args]
+  (loop [options    (default-values-for specs)
+         extra-args []
+         args       args]
+    (if-not (seq args)
+      [options extra-args]
+      (let [opt  (first args)
+            spec (option-for opt specs)]
+        (cond
+         (end-of-args? opt)
+         (recur options (into extra-args (vec (rest args))) nil)
 
-  ;; Usage of do-sub-command:
+         (and (opt? opt) (nil? spec))
+         (throw (Exception. (str "'" opt "' is not a valid argument")))
 
-  (defn fn1 [& args] ...)
+         (and (opt? opt) (spec :flag))
+         (recur ((spec :assoc-fn) options (spec :name) (flag-for opt))
+                extra-args
+                (rest args))
 
-  (defn fn2 [& args] ...)
+         (opt? opt)
+         (recur ((spec :assoc-fn) options (spec :name) ((spec :parse-fn) (second args)))
+                extra-args
+                (drop 2 args))
 
-  (defn fn34 [& args] ...)
+         :default
+         (recur options (conj extra-args (first args)) (rest args)))))))
 
-  (do-sub-command *command-line-args*
-    "Usage: cmd [-h] {sub1,sub2,sub3,sub4} ..."
-    [:sub1 fn1 "Desc about fn1"]          ; [:sub-command-name function description]
-    [:sub2 fn2]                           ; Description can be ommited
-    [:sub3 :sub4 fn34 "Desc aboud fn34"]) ; Be able to bind multi-sub-commands to a function
+(defn- switches-for
+  [switches flag]
+  (-> (for [^String s switches]
+        (cond
+         (and flag (flag? s))            [(replace s #"\[no-\]" "no-") (replace s #"\[no-\]" "")]
+         (and flag (.startsWith s "--")) [(replace s #"--" "--no-") s]
+         :default                        [s]))
+      flatten))
 
-  )
+(defn- generate-option
+  [raw-opt]
+  (let [[switches raw-opt] (split-with #(and (string? %) (opt? %)) raw-opt)
+        [docs raw-opt]     (split-with string? raw-opt)
+        options            (apply hash-map raw-opt)
+        aliases            (map name-for switches)
+        flag               (or (flag? (last switches)) (options :flag))]
+    (merge {:switches (switches-for switches flag)
+            :docs     (first docs)
+            :aliases  (set aliases)
+            :name     (keyword (last aliases))
+            :parse-fn identity
+            :assoc-fn assoc
+            :flag     flag}
+           (when flag {:default false})
+           options)))
 
-(defmacro with-sub-command
-  "Binds local options and a sub-command and sub-args to command-line args."
-  [args desc spec & body]
-  (let [optspec (vec (drop-last  spec))
-        cmdspec (last spec)
-        optlocals (vec (map first optspec))
-        [[subcmd subargs] cmdspec] cmdspec]
-    `(let [{optargs# true, [subcmd# & subargs#] false} (group-by-optargs ~args '~optspec)
-           {:strs ~optlocals :as optmap#} (make-optmap optargs# '~optspec)
-           {~subcmd :cmd :as cmdmap#} (make-cmdmap subcmd# '~cmdspec)
-           ~subargs subargs#]
-       (if (optmap# "help?")
-         (print-help ~desc optmap# cmdmap#)
-         (if (nil? ~subcmd)
-           (throw (Exception. (str "Unknown sub-command " subcmd#)))
-           (do ~@body))))))
+(defn- command-for
+  [cmdarg commands]
+  (->> (map :name commands)
+       (filter (partial = (keyword cmdarg)))
+       (first)))
 
-(comment
+(defn- generate-command
+  [raw-cmd]
+  (let [[name doc] raw-cmd]
+   {:name (keyword name)
+    :doc doc}))
 
-  ;; Usage of with-sub-command:
+(defn- group-by-optargs
+  [args options]
+  (loop [optargs []
+         args args]
+    (if-let [option (option-for (first args) options)]
+      (if (:flag option)
+        (recur (conj optargs (first args)) (rest args))
+        (recur (apply conj optargs (take 2 args)) (drop 2 args)))
+      [optargs (vec args)])))
 
-  (defn fn1 [& args] ...)
-
-  (defn fn2 [& args] ...)
-
-  (defn fn34 [& args] ...)
-
-  (with-sub-command *command-line-args*
-    "Usage: cmd [-h] [-v] [--version] {sub1,sub2,sub3,sub4} ..."
-    [[verbose? v?]                                   ; Binds options, the same way as clojure.contrib.command-line/with-command-line
-     [version? "Print version" false]
-     [[sub args] [[:sub1 "Desc about fn1"]           ; [:sub-command-name description]
-                  :sub2                              ; Description can be ommited
-                  [:sub3 :sub4 "Desc aboud fn34"]]]] ; sub is binded to the first symbol, :sub3 in this case
-    (binding [*debug-comments* verbose?]
-      (condp = sub
-        :sub1 (apply fn1 args)
-        :sub2 (apply fn2 args)
-        :sub3 (apply fn34 args))))
-
-  )
+(defn sub-command
+  [args & specs]
+  (let [[desc {:keys [options commands]}] (if (string? (first specs))
+                                            [(first specs) (rest specs)]
+                                            [nil specs])
+        options (map generate-option options)
+        commands (map generate-command commands)
+        [optargs [cmdarg & cmdspecs]] (group-by-optargs args options)
+        banner (with-out-str (banner-for desc options))
+        [options _] (apply-options options optargs)
+        command (command-for cmdarg commands)]
+    [options command banner]))
