@@ -17,7 +17,7 @@
 (defn- banner-for-options
   [options]
   (let [docs (into (map build-option-doc options)
-                   [["--------" "-------" "----"]
+                   [["-------" "-------" "----"]
                     ["Options" "Default" "Desc"]])
         max-cols (->> (for [d docs] (map count d))
                       (apply map (fn [& c] (apply vector c)))
@@ -31,7 +31,7 @@
 (defn- banner-for-commands
   [commands]
   (let [docs (into (map build-command-doc commands)
-                   [["--------" "----"]
+                   [["-------" "----"]
                     ["Command" "Desc"]])
         max-cols (->> (for [d docs] (map count d))
                       (apply map (fn [& c] (apply vector c)))
@@ -170,4 +170,4 @@
         banner (with-out-str (banner-for desc options commands))
         [options _] (apply-options options optargs)
         command (command-for cmdarg commands)]
-    [options command cmdspecs banner]))
+    [options command (vec cmdspecs) banner]))
