@@ -5,18 +5,20 @@
   (:require [clojure.string :refer [blank? join replace]]
             [clojure.pprint :refer [pprint cl-format]]))
 
-(defn- build-doc [{:keys [switches docs default]}]
+(defn- build-option-doc [{:keys [switches docs default]}]
   [(apply str (interpose ", " switches))
    (or (str default) "")
    (or docs "")])
 
-(defn- banner-for [desc specs]
-  (when desc
-    (println desc)
-    (println))
-  (let [docs (into (map build-doc specs)
+(defn- build-command-doc [{:keys [command docs]}]
+  [(name command)
+   (or docs "")])
+
+(defn- banner-for-options
+  [options]
+  (let [docs (into (map build-option-doc options)
                    [["--------" "-------" "----"]
-                    ["Switches" "Default" "Desc"]])
+                    ["Options" "Default" "Desc"]])
         max-cols (->> (for [d docs] (map count d))
                       (apply map (fn [& c] (apply vector c)))
                       (map #(apply max %)))
@@ -25,6 +27,29 @@
     (doseq [v vs]
       (cl-format true "~{ ~vA  ~vA  ~vA ~}" v)
       (prn))))
+
+(defn- banner-for-commands
+  [commands]
+  (let [docs (into (map build-command-doc commands)
+                   [["--------" "----"]
+                    ["Command" "Desc"]])
+        max-cols (->> (for [d docs] (map count d))
+                      (apply map (fn [& c] (apply vector c)))
+                      (map #(apply max %)))
+        vs (for [d docs]
+             (mapcat (fn [& x] (apply vector x)) max-cols d))]
+    (doseq [v vs]
+      (cl-format true "~{ ~vA  ~vA ~}" v)
+      (prn))))
+
+(defn- banner-for [desc options commands]
+  (when desc
+    (println desc)
+    (println))
+  (banner-for-options options)
+  (println)
+  (banner-for-commands commands)
+)
 
 (defn- name-for [k]
   (replace k #"^--no-|^--\[no-\]|^--|^-" ""))
@@ -114,15 +139,15 @@
 
 (defn- command-for
   [cmdarg commands]
-  (->> (map :name commands)
+  (->> (map :command commands)
        (filter (partial = (keyword cmdarg)))
        (first)))
 
 (defn- generate-command
   [raw-cmd]
   (let [[name doc] raw-cmd]
-   {:name (keyword name)
-    :doc doc}))
+   {:command (keyword name)
+    :docs doc}))
 
 (defn- group-by-optargs
   [args options]
@@ -142,7 +167,7 @@
         options (map generate-option options)
         commands (map generate-command commands)
         [optargs [cmdarg & cmdspecs]] (group-by-optargs args options)
-        banner (with-out-str (banner-for desc options))
+        banner (with-out-str (banner-for desc options commands))
         [options _] (apply-options options optargs)
         command (command-for cmdarg commands)]
     [options command banner]))
