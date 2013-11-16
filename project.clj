@@ -1,4 +1,4 @@
-(defproject clj-sub-command "0.1.1-SNAPSHOT"
+(defproject clj-sub-command "0.2.0-SNAPSHOT"
   :description "A simple sub-command parser for Clojure."
   :url "https://github.com/totakke/clj-sub-command"
   :license {:name "Eclipse Public License"
