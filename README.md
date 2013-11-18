@@ -21,7 +21,7 @@ For using with leiningen, add the following dependency:
 
 (sub-command args
              "Usage: cmd [-v] {cmd1,cmd2} ..."
-             :options  [["-p" "--port" "Listen on this port :parse-fn #(Integer. %)]
+             :options  [["-p" "--port" "Listen on this port" :parse-fn #(Integer. %)]
                         ["--host" "The hostname" :default "localhost"]
                         ["-v" "--[no-]verbose" :default true]]
              :commands [["cmd1" "Description for cmd1"]
@@ -116,13 +116,13 @@ I recommend using clj-sub-command with another command-line parser for parsing t
                                           :options  [["-h" "--help" "Show help" :default false :flag true]]
                                           :commands [["cmd1" "Description for cmd1"]
                                                      ["cmd2" "Description for cmd2"]])]
-  (when (:help opts)
-    (println help)
-    (System/exit 0))
-  (case cmd
-    :cmd1 (f1 args)
-    :cmd2 (f2 args)
-    (println help))))
+    (when (:help opts)
+      (println help)
+      (System/exit 0))
+    (case cmd
+      :cmd1 (f1 args)
+      :cmd2 (f2 args)
+      (println help))))
 ```
 
 ## License
