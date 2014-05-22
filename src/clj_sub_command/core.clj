@@ -5,6 +5,11 @@
   (:require [clojure.string :refer [blank? join replace]]
             [clojure.pprint :refer [pprint cl-format]]))
 
+(def ^:dynamic *max-normalized-levenshtein-distance*
+  "Max value of normalized levenshtein distance used in searching candidate
+  commands. The default value is 0.5."
+  0.5)
+
 (defn- build-option-doc [{:keys [switches docs default]}]
   [(apply str (interpose ", " switches))
    (or (str default) "")
@@ -159,6 +164,61 @@
         (recur (apply conj optargs (take 2 args)) (drop 2 args)))
       [optargs (vec args)])))
 
+(defn- deep-merge-with
+  [f & maps]
+  (apply
+   (fn m [& maps]
+     (if (every? map? maps)
+       (apply merge-with m maps)
+       (apply f maps)))
+   maps))
+
+(defn- levenshtein-distance
+  [a b]
+  (let [m (count a)
+        n (count b)
+        init (apply deep-merge-with (fn [a b] b)
+                    (concat
+                     (for [i (range 0 (+ 1 m))]
+                       {i {0 i}})
+                     (for [j (range 0 (+ 1 n))]
+                       {0 {j j}})))
+        table (reduce
+               (fn [d [i j]]
+                 (deep-merge-with
+                  (fn [a b] b)
+                  d
+                  {i {j (if (= (nth a (- i 1))
+                               (nth b (- j 1)))
+                          ((d (- i 1)) (- j 1))
+                          (min
+                           (+ ((d (- i 1))
+                               j) 1)
+                           (+ ((d i)
+                               (- j 1)) 1)
+                           (+ ((d (- i 1))
+                               (- j 1)) 1)))
+                      }}))
+               init
+               (for [j (range 1 (+ 1 n))
+                     i (range 1 (+ 1 m))] [i j]))]
+    ((table m) n)))
+
+(defn- normalized-levenshtein-distance
+  [a b]
+  (/ (levenshtein-distance a b) (max (count a) (count b))))
+
+(defn- candidates
+  "e.g.
+  => (candidate \"sttatus\" #{\"status\" \"commit\" \"push\"})
+  [\"status\"]"
+  [s command-set]
+  (->> command-set
+       (map #(vector % (normalized-levenshtein-distance s %)))
+       (filter #(<= (second %) *max-normalized-levenshtein-distance*))
+       (sort-by second)
+       (mapv first)))
+
 (defn sub-command
   [args & specs]
   (let [[desc {:keys [options commands]}] (if (string? (first specs))
@@ -169,5 +229,8 @@
         [optargs [cmdarg & cmdspecs]] (group-by-optargs args options)
         banner (with-out-str (banner-for desc options commands))
         [options _] (apply-options options optargs)
-        command (command-for cmdarg commands)]
-    [options command (vec cmdspecs) banner]))
+        command (command-for cmdarg commands)
+        candidates (candidates cmdarg (->> commands
+                                           (map (comp name :command))
+                                           (set)))]
+    [options command (vec cmdspecs) banner candidates]))
