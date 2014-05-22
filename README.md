@@ -6,12 +6,12 @@ clj-sub-command is a simple sub-command parser for Clojure.
 
 clj-sub-command is available as a Maven artifact from [Clojars][1].
 
-Latest stable release is version 0.2.0.
+Latest stable release is version 0.2.1.
 
 For using with leiningen, add the following dependency:
 
 ```
-[clj-sub-command "0.2.0"]
+[clj-sub-command "0.2.1"]
 ```
 
 ## Usage
