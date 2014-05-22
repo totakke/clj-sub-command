@@ -58,7 +58,7 @@ will return a vector containing four elements:
 ["--log-directory" "/tmp" "some-file"]
 ```
 
-4) and a documentation string to use to provide help:
+4) a documentation string to use to provide help:
 
 ```clojure
 Usage: cmd [-v] {cmd1,cmd2} ...
@@ -76,14 +76,21 @@ Usage: cmd [-v] {cmd1,cmd2} ...
 
 ```
 
+5) a vector of candidate commands in similarity order:
+
+```clojure
+["cmd1" "cmd2"]
+```
+
 ### Help document
 
 The fourth item in the resulting vector is a banner useful for providing help to the user:
 
 ```clojure
-(let [[opts cmd args help] (sub-command args
-                                        :options  [["-h" "--help" "Show help" :default false :flag true]]
-                                        :commands [["cmd1"] ["cmd2"]])]
+(let [[opts cmd args help cands]
+      (sub-command args
+                   :options  [["-h" "--help" "Show help" :default false :flag true]]
+                   :commands [["cmd1"] ["cmd2"]])]
   (when (:help opts)
     (println help)
     (System/exit 0))
@@ -97,7 +104,8 @@ I recommend using clj-sub-command with another command-line parser for parsing t
 
 ```clojure
 (ns foo.core
-  (:require [clj-sub-command.core :refer [sub-command]]
+  (:require [clojure.string :as str]
+            [clj-sub-command.core :refer [sub-command]]
             [clojure.tools.cli :refer [cli]]))
 
 (defn f1 [args]
@@ -111,18 +119,24 @@ I recommend using clj-sub-command with another command-line parser for parsing t
   ...)
 
 (defn -main [& args]
-  (let [[opts cmd args help] (sub-command args
-                                          "Usage: foo [-h] {cmd1,cmd2} ..."
-                                          :options  [["-h" "--help" "Show help" :default false :flag true]]
-                                          :commands [["cmd1" "Description for cmd1"]
-                                                     ["cmd2" "Description for cmd2"]])]
+  (let [[opts cmd args help cands]
+        (sub-command args
+                     "Usage: foo [-h] {cmd1,cmd2} ..."
+                     :options  [["-h" "--help" "Show help" :default false :flag true]]
+                     :commands [["cmd1" "Description for cmd1"]
+                                ["cmd2" "Description for cmd2"]])]
     (when (:help opts)
       (println help)
       (System/exit 0))
     (case cmd
       :cmd1 (f1 args)
       :cmd2 (f2 args)
-      (println help))))
+      (do (println (str "Invalid command. See 'foo --help'."))
+          (when (seq cands)
+            (newline)
+            (println "Did you mean one of these?")
+            (doseq [c cands]
+              (println "       " c)))))))
 ```
 
 ## License
