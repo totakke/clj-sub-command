@@ -36,7 +36,7 @@ with args of:
  "cmd1" "--log-directory" "/tmp" "some-file"]
 ```
 
-will return a vector containing four elements:
+will return a vector containing five elements:
 
 1) a map with the option names picked out for you as keywords:
 
@@ -76,7 +76,7 @@ Usage: cmd [-v] {cmd1,cmd2} ...
 
 ```
 
-5) a vector of candidate commands in similarity order:
+5) and a vector of candidate commands in similarity order:
 
 ```clojure
 ["cmd1" "cmd2"]
@@ -131,7 +131,7 @@ I recommend using clj-sub-command with another command-line parser for parsing t
     (case cmd
       :cmd1 (f1 args)
       :cmd2 (f2 args)
-      (do (println (str "Invalid command. See 'foo --help'."))
+      (do (println "Invalid command. See 'foo --help'."))
           (when (seq cands)
             (newline)
             (println "Did you mean one of these?")
