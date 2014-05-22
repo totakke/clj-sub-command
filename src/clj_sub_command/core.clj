@@ -209,9 +209,15 @@
   (/ (levenshtein-distance a b) (max (count a) (count b))))
 
 (defn- candidates
-  "e.g.
-  => (candidate \"sttatus\" #{\"status\" \"commit\" \"push\"})
-  [\"status\"]"
+  "Returns candidate commands as a vector. The candidates are aligned in
+  similarity order using levenshtein distance. If no similar commands exist,
+  returns an empty vector not `nil`. See also
+  `*max-normalized-levenshtein-distance*`.
+
+  e.g.
+
+      => (candidate \"sttatus\" #{\"status\" \"commit\" \"push\"})
+      [\"status\"]"
   [s command-set]
   (->> command-set
        (map #(vector % (normalized-levenshtein-distance s %)))
