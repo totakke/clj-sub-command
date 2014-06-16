@@ -4,15 +4,11 @@ clj-sub-command is a simple sub-command parser for Clojure.
 
 ## Installation
 
-clj-sub-command is available as a Maven artifact from [Clojars][1].
+clj-sub-command is available as a Maven artifact from Clojars.
 
-Latest stable release is version 0.2.1.
+For using with Leiningen, add the following dependency:
 
-For using with leiningen, add the following dependency:
-
-```
-[clj-sub-command "0.2.1"]
-```
+[![Clojars Project](http://clojars.org/clj-sub-command/latest-version.svg)](http://clojars.org/clj-sub-command)
 
 ## Usage
 
@@ -100,7 +96,7 @@ The fourth item in the resulting vector is a banner useful for providing help to
 ### Example
 
 I recommend using clj-sub-command with another command-line parser for parsing the rest arguments.
-(e.g. [tools.cli][2])
+(e.g. [tools.cli][1])
 
 ```clojure
 (ns foo.core
@@ -145,5 +141,4 @@ Copyright © 2013 Toshiki Takeuchi
 
 Distributed under the Eclipse Public License, the same as Clojure.
 
-[1]: https://clojars.org/clj-sub-command
-[2]: https://github.com/clojure/tools.cli
+[1]: https://github.com/clojure/tools.cli
