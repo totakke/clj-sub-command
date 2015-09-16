@@ -1,6 +1,9 @@
 # clj-sub-command
 
-clj-sub-command is a simple sub-command parser for Clojure.
+**clj-sub-command** is a simple sub-command parser for Clojure.
+
+[![Build Status](https://travis-ci.org/totakke/clj-sub-command.svg?branch=master)](https://travis-ci.org/totakke/clj-sub-command)
+[![Dependency Status](https://www.versioneye.com/user/projects/55e18a52c6d8f2001500037f/badge.svg?style=flat)](https://www.versioneye.com/user/projects/55e18a52c6d8f2001500037f)
 
 ## Installation
 
@@ -137,7 +140,7 @@ I recommend using clj-sub-command with another command-line parser for parsing t
 
 ## License
 
-Copyright © 2013 Toshiki Takeuchi
+Copyright © 2013-2015 Toshiki Takeuchi
 
 Distributed under the Eclipse Public License, the same as Clojure.
 
