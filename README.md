@@ -140,7 +140,7 @@ I recommend using clj-sub-command with another command-line parser for parsing t
 
 ## License
 
-Copyright © 2013-2015 Toshiki Takeuchi
+Copyright © 2013-2016 Toshiki Takeuchi
 
 Distributed under the Eclipse Public License, the same as Clojure.
 
