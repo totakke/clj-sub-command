@@ -106,19 +106,48 @@ I recommend using clj-sub-command with another command-line parser for parsing t
 
 ```clojure
 (ns foo.core
-  (:require [clojure.string :as str]
-            [clj-sub-command.core :refer [sub-command]]
-            [clojure.tools.cli :refer [cli]]))
+  (:require [clojure.string :as string]
+            [clj-sub-command.core :refer [sub-command candidate-message]]
+            [clojure.tools.cli :refer [parse-opts]])
+  (:gen-class))
 
-(defn f1 [args]
-  (let [[opt _] (cli args
-                     "Usage: foo cmd1 [-v] file [file ...]"
-                     ["-v" "--[no-]verbose" :default true])]
+(defn error-msg [errors]
+  (str "The following errors occurred while parsing your command:\n\n"
+       (string/join \newline errors)))
+
+(defn exit [status msg]
+  (println msg)
+  (System/exit status))
+
+;; "cmd1" command
+
+(def cmd1-options
+  [["-v" "--verbose"]
+   ["-h" "--help"]])
+
+(defn cmd1-usage [options-summary]
+  (->> ["Usage: foo cmd1 [options] file"
+        ""
+        "Options:"
+        options-summary]
+       (string/join \newline)))
+
+(defn cmd1 [args]
+  (let [{:keys [options arguments errors summary]} (parse-opts args cmd1-options)]
+    (cond
+      (:help options) (exit 0 (cmd1-usage summary))
+      (not= (count arguments) 1) (exit 1 (cmd1-usage summary))
+      errors (exit 1 (error-msg errors)))
     (if (:verbose opt)
       ...)))
 
-(defn f2 [args]
-  ...)
+;; "cmd2" command
+
+(def cmd2-options ...)
+(defn cmd2-usage [options-summary] ...)  
+(defn cmd2 [args] ...)
+
+;; main
 
 (defn -main [& args]
   (let [[opts cmd args help cands]
@@ -128,17 +157,12 @@ I recommend using clj-sub-command with another command-line parser for parsing t
                      :commands [["cmd1" "Description for cmd1"]
                                 ["cmd2" "Description for cmd2"]])]
     (when (:help opts)
-      (println help)
-      (System/exit 0))
+      (exit 0 help))
     (case cmd
-      :cmd1 (f1 args)
-      :cmd2 (f2 args)
-      (do (println "Invalid command. See 'foo --help'."))
-          (when (seq cands)
-            (newline)
-            (println "Did you mean one of these?")
-            (doseq [c cands]
-              (println "       " c)))))))
+      :cmd1 (cmd1 args)
+      :cmd2 (cmd2 args)
+      (exit 1 (str "Invalid command. See 'foo --help'.\n\n"
+                   (candidate-message cands))))))
 ```
 
 ## License
