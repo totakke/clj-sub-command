@@ -7,6 +7,12 @@
     (is (= (candidates' "sttatus" #{"status" "commit" "push"}) ["status"]))
     (is (= (candidates' "unknown" #{"status" "commit" "push"}) []))))
 
+(deftest candidate-message-test
+  (is (= (candidate-message ["pull"]) "Did you mean this?\n        pull"))
+  (is (= (candidate-message ["pull" "push"]) "Did you mean one of these?\n        pull\n        push"))
+  (is (nil? (candidate-message [])))
+  (is (nil? (candidate-message nil))))
+
 (deftest sub-command-test
   (let [[opts cmd args _ cands]
         (sub-command ["-p" "8080" "--no-verbose" "command1" "filename"]
