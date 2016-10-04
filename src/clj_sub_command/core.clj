@@ -225,6 +225,18 @@
        (sort-by second)
        (mapv first)))
 
+(defn candidate-message
+  "Returns message for telling a user candidate commands. Returns nil if
+  candidates is empty or nil."
+  [candidates]
+  (if (seq candidates)
+    (->> candidates
+         (map (partial str "        "))
+         (cons (if (= (count candidates) 1)
+                 "Did you mean this?"
+                 "Did you mean one of these?"))
+         (join \newline))))
+
 (defn sub-command
   [args & specs]
   (let [[desc {:keys [options commands]}] (if (string? (first specs))
