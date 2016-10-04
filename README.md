@@ -99,7 +99,33 @@ The fourth item in the resulting vector is a banner useful for providing help to
   ...)
 ```
 
-### Example
+### Candidate commands
+
+The fifth item in the resulting vector is useful for suggesting candidate commands to the user. `candidate-message` generates message of the suggestion.
+
+```clojure
+(require '[clj-sub-command.core :refer [sub-command candidate-message]])
+
+(let [[opts cmd args help cands]
+      (sub-command args :commands [["cmd1"] ["cmd2"]])]
+  (case cmd
+    :cmd1 (println "cmd1!")
+    :cmd2 (println "cmd2!")
+    (println (str "Invalid command. See 'foo --help'.\n\n"
+                  (candidate-message cands)))))
+```
+
+with args of `["cmd3"]` will print
+
+```
+Invalid command. See 'foo --help'.
+
+Did you mean one of these?
+        cmd1
+        cmd2
+```
+
+## Example
 
 I recommend using clj-sub-command with another command-line parser for parsing the rest arguments.
 (e.g. [tools.cli][1])
