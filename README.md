@@ -13,7 +13,7 @@ clj-sub-command is available as a Maven artifact from [Clojars](https://clojars.
 With Leiningen/Boot:
 
 ```clojure
-[clj-sub-command "0.2.3"]
+[clj-sub-command "0.3.0"]
 ```
 
 ## Usage
