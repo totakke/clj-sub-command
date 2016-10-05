@@ -6,5 +6,4 @@
   :dependencies [[org.clojure/clojure "1.6.0"]]
   :profiles {:1.9 {:dependencies [[org.clojure/clojure "1.9.0-alpha13"]]}
              :1.8 {:dependencies [[org.clojure/clojure "1.8.0"]]}
-             :1.7 {:dependencies [[org.clojure/clojure "1.7.0"]]}}
-  :signing {:gpg-key "roimisia@gmail.com"})
+             :1.7 {:dependencies [[org.clojure/clojure "1.7.0"]]}})
