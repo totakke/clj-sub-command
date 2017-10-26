@@ -128,7 +128,7 @@ Did you mean one of these?
 ## Example
 
 I recommend using clj-sub-command with another command-line parser for parsing the rest arguments.
-(e.g. [tools.cli][1])
+(e.g. [tools.cli](https://github.com/clojure/tools.cli))
 
 ```clojure
 (ns foo.core
@@ -170,7 +170,7 @@ I recommend using clj-sub-command with another command-line parser for parsing t
 ;; "cmd2" command
 
 (def cmd2-options ...)
-(defn cmd2-usage [options-summary] ...)  
+(defn cmd2-usage [options-summary] ...)
 (defn cmd2 [args] ...)
 
 ;; main
@@ -193,8 +193,6 @@ I recommend using clj-sub-command with another command-line parser for parsing t
 
 ## License
 
-Copyright © 2013-2016 Toshiki Takeuchi
+Copyright © 2013-2017 Toshiki Takeuchi
 
 Distributed under the Eclipse Public License, the same as Clojure.
-
-[1]: https://github.com/clojure/tools.cli
