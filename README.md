@@ -2,7 +2,6 @@
 
 [![Clojars Project](https://img.shields.io/clojars/v/clj-sub-command.svg)](https://clojars.org/clj-sub-command)
 [![Build Status](https://travis-ci.org/totakke/clj-sub-command.svg?branch=master)](https://travis-ci.org/totakke/clj-sub-command)
-[![Dependency Status](https://www.versioneye.com/user/projects/55e18a52c6d8f2001500037f/badge.svg?style=flat)](https://www.versioneye.com/user/projects/55e18a52c6d8f2001500037f)
 
 A simple sub-command parser for Clojure.
 
