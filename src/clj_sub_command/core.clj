@@ -2,8 +2,9 @@
       :doc "A simple sub-command parser for Clojure."}
   clj-sub-command.core
   (:refer-clojure :exclude [replace])
-  (:require [clojure.string :refer [blank? join replace]]
-            [clojure.pprint :refer [pprint cl-format]]))
+  (:require [clojure.string :as s :refer [blank? join replace]]
+            [clojure.pprint :as pp :refer [pprint cl-format]]
+            [clojure.tools.cli :as cli]))
 
 (def ^:dynamic *max-normalized-levenshtein-distance*
   "Max value of normalized levenshtein distance used in searching candidate
@@ -238,6 +239,8 @@
          (join \newline))))
 
 (defn sub-command
+  "THIS IS A LEGACY FUNCTION and may be deprecated in the future. Please use
+  clj-sub-command.core/parse-cmds in new applications."
   [args & specs]
   (let [[desc {:keys [options commands]}] (if (string? (first specs))
                                             [(first specs) (rest specs)]
@@ -252,3 +255,36 @@
                                            (map (comp name :command))
                                            (set)))]
     [options command (vec cmdspecs) banner candidates]))
+
+(defn summarize-cmds
+  [command-specs]
+  (if (seq command-specs)
+    (let [lens (apply map (fn [& cols]
+                            (apply max (map count cols))) command-specs)]
+      (->> command-specs
+           (map #(s/trimr (pp/cl-format nil "~{  ~vA  ~vA~}" (interleave lens %))))
+           (s/join \newline)))
+    ""))
+
+(defn parse-cmds
+  ([args command-specs]
+   (parse-cmds args nil command-specs))
+  ([args option-specs command-specs]
+   (let [m (cli/parse-opts args option-specs :in-order true)
+         cmd (first (:arguments m))
+         scmds (set (map first command-specs))
+         cands (candidates cmd scmds)
+         error (when-not (scmds cmd)
+                 (str "Unknown command: " (pr-str (or cmd ""))
+                      (when (seq cands)
+                        (str "\n\n" (candidate-message cands)))))
+         errors (if error
+                  (conj (or (:errors m) []) error)
+                  (:errors m))]
+     {:options (:options m)
+      :command (keyword (scmds cmd))
+      :arguments (vec (drop 1 (:arguments m)))
+      :options-summary (:summary m)
+      :commands-summary (summarize-cmds command-specs)
+      :errors (when (seq errors) errors)
+      :candidates cands})))
