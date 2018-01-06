@@ -1,5 +1,6 @@
 (ns clj-sub-command.core-test
   (:require [clojure.test :refer :all]
+            [clojure.string :as s]
             [clj-sub-command.core :refer :all]))
 
 (deftest candidates-test
@@ -28,3 +29,38 @@
       (is (= args ["filename"])))
     (testing "for candidates"
       (is (= cands ["command1" "command2"])))))
+
+(deftest parse-cmds-test
+  (testing "w/o options"
+    (let [m (parse-cmds ["command1" "file1" "file2"]
+                        [["command1" "desc for command1"]
+                         ["command2" "desc for command2"]])]
+      (is (empty? (:options m)))
+      (is (= (:command m) :command1))
+      (is (= (:arguments m) ["file1" "file2"]))
+      (is (s/blank? (:options-summary m)))
+      (is (not (s/blank? (:commands-summary m))))
+      (is (nil? (:errors m)))
+      (is (= (:candidates m) ["command1" "command2"]))))
+  (testing "with options"
+    (let [m (parse-cmds ["-p" "8080" "--verbose" "command1" "file"]
+                        [["-p" "--port PORT" "Port number"
+                          :parse-fn #(Integer/parseInt %)]
+                         ["-v" "--verbose"]]
+                        [["command1" "desc for command1"]
+                         ["command2" "desc for command2"]])]
+      (is (= (:options m) {:port 8080, :verbose true}))
+      (is (= (:command m) :command1))
+      (is (= (:arguments m) ["file"]))
+      (is (not (s/blank? (:options-summary m))))
+      (is (not (s/blank? (:commands-summary m))))
+      (is (nil? (:errors m)))
+      (is (= (:candidates m) ["command1" "command2"]))))
+  (testing "error"
+    (let [m (parse-cmds ["--vervose" "sstatus"]
+                        [["-v" "--verbose"]]
+                        [["status" "Status"]
+                         ["commit" "Commit"]
+                         ["push" "Push"]])]
+      (is (= (count (:errors m)) 2))
+      (is (= (:candidates m) ["status"])))))
