@@ -234,8 +234,8 @@
     (->> candidates
          (map (partial str "        "))
          (cons (if (= (count candidates) 1)
-                 "Did you mean this?"
-                 "Did you mean one of these?"))
+                 "The most similar command is"
+                 "The most similar commands are"))
          (join \newline))))
 
 (defn sub-command

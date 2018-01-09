@@ -9,8 +9,8 @@
     (is (= (candidates' "unknown" #{"status" "commit" "push"}) []))))
 
 (deftest candidate-message-test
-  (is (= (candidate-message ["pull"]) "Did you mean this?\n        pull"))
-  (is (= (candidate-message ["pull" "push"]) "Did you mean one of these?\n        pull\n        push"))
+  (is (= (candidate-message ["pull"]) "The most similar command is\n        pull"))
+  (is (= (candidate-message ["pull" "push"]) "The most similar commands are\n        pull\n        push"))
   (is (nil? (candidate-message [])))
   (is (nil? (candidate-message nil))))
 
