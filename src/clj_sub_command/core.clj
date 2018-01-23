@@ -267,24 +267,22 @@
     ""))
 
 (defn parse-cmds
-  ([args command-specs]
-   (parse-cmds args nil command-specs))
-  ([args option-specs command-specs]
-   (let [m (cli/parse-opts args option-specs :in-order true)
-         cmd (first (:arguments m))
-         scmds (set (map first command-specs))
-         cands (candidates cmd scmds)
-         error (when-not (scmds cmd)
-                 (str "Unknown command: " (pr-str (or cmd ""))
-                      (when (seq cands)
-                        (str "\n\n" (candidate-message cands)))))
-         errors (if error
-                  (conj (or (:errors m) []) error)
-                  (:errors m))]
-     {:options (:options m)
-      :command (keyword (scmds cmd))
-      :arguments (vec (drop 1 (:arguments m)))
-      :options-summary (:summary m)
-      :commands-summary (summarize-cmds command-specs)
-      :errors (when (seq errors) errors)
-      :candidates cands})))
+  [args option-specs command-specs]
+  (let [m (cli/parse-opts args option-specs :in-order true)
+        cmd (first (:arguments m))
+        scmds (set (map first command-specs))
+        cands (candidates cmd scmds)
+        error (when-not (scmds cmd)
+                (str "Unknown command: " (pr-str (or cmd ""))
+                     (when (seq cands)
+                       (str "\n\n" (candidate-message cands)))))
+        errors (if error
+                 (conj (or (:errors m) []) error)
+                 (:errors m))]
+    {:options (:options m)
+     :command (keyword (scmds cmd))
+     :arguments (vec (drop 1 (:arguments m)))
+     :options-summary (:summary m)
+     :commands-summary (summarize-cmds command-specs)
+     :errors (when (seq errors) errors)
+     :candidates cands}))

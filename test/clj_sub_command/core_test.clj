@@ -33,6 +33,7 @@
 (deftest parse-cmds-test
   (testing "w/o options"
     (let [m (parse-cmds ["command1" "file1" "file2"]
+                        []
                         [["command1" "desc for command1"]
                          ["command2" "desc for command2"]])]
       (is (empty? (:options m)))
