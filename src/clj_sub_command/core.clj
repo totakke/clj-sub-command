@@ -257,6 +257,8 @@
     [options command (vec cmdspecs) banner candidates]))
 
 (defn summarize-cmds
+  "Reduces subcommands specs into a subcommands summary for printing at a
+  terminal."
   [command-specs]
   (if (seq command-specs)
     (let [lens (apply map (fn [& cols]
@@ -267,6 +269,19 @@
     ""))
 
 (defn parse-cmds
+  "Parses arguments sequence according to given option and subcommand
+  specifications.
+
+  parse-cmds returns a map with seven entries:
+
+    {:options          The options map, keyed by :id, mapped to the parsed value
+     :command          The keyword of the detected subcommand
+     :arguments        A vector of unprocessed arguments
+     :options-summary  A string containing a minimal options summary
+     :commands-summary A string containing a minimal subcommands summary
+     :errors           A possible vector of error message strings generated
+                       during parsing; nil when no errors exist
+     :candidates       A vector of candidate commands}"
   [args option-specs command-specs]
   (let [m (cli/parse-opts args option-specs :in-order true)
         cmd (first (:arguments m))
