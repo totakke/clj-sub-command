@@ -1,5 +1,5 @@
 (ns ^{:author "Toshiki Takeuchi",
-      :doc "A simple sub-command parser for Clojure."}
+      :doc "A simple subcommand parser for Clojure."}
   clj-sub-command.core
   (:refer-clojure :exclude [replace])
   (:require [clojure.string :as s :refer [blank? join replace]]

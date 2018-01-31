@@ -3,7 +3,7 @@
 [![Clojars Project](https://img.shields.io/clojars/v/clj-sub-command.svg)](https://clojars.org/clj-sub-command)
 [![Build Status](https://travis-ci.org/totakke/clj-sub-command.svg?branch=master)](https://travis-ci.org/totakke/clj-sub-command)
 
-A simple sub-command parser for Clojure.
+A simple subcommand parser for Clojure.
 
 ## Installation
 
@@ -12,127 +12,99 @@ clj-sub-command is available as a Maven artifact from [Clojars](https://clojars.
 With Leiningen/Boot:
 
 ```clojure
-[clj-sub-command "0.3.0"]
+[clj-sub-command "0.4.0"]
 ```
 
 ## Usage
 
 ```clojure
-(require '[clj-sub-command.core :refer [sub-command]])
+(ns my.program
+  (:require [clj-sub-command.core :refer [parse-cmds]])
+  (:gen-class))
 
-(sub-command args
-             "Usage: cmd [-v] {cmd1,cmd2} ..."
-             :options  [["-p" "--port" "Listen on this port" :parse-fn #(Integer. %)]
-                        ["--host" "The hostname" :default "localhost"]
-                        ["-v" "--[no-]verbose" :default true]]
-             :commands [["cmd1" "Description for cmd1"]
-                        ["cmd2" "Description for cmd2"]])
+;; Options before a subcommand
+(def options
+  [["-p" "--port PORT" "Port number"
+    :default 80
+    :parse-fn #(Integer/parseInt %)]
+   ["-h" "--help"]])
+
+;; Subcommands and descriptions
+(def commands
+  [["up" "Start server"]
+   ["down" "Stop server"]])
+
+(defn -main [& args]
+  (parse-cmds args options commands))
 ```
 
-with args of:
+Execute the command line:
+
+```console
+$ my-program -p8080 --help up --log-directory /tmp some-file
+```
+
+to produce the map:
 
 ```clojure
-["-p" 8080
- "--no-verbose"
- "cmd1" "--log-directory" "/tmp" "some-file"]
+{:options          {:port 8080
+                    :help true}
+ :command          :up
+ :arguments        ["--log-directory" "/tmp" "some-file"]
+ :options-summary  "  -p, --port PORT  80  Port number
+                      -h, --help"
+ :commands-summary "  up    Start server
+                      down  Stop server"
+ :errors nil
+ :candidates ["up"]}
 ```
 
-will return a vector containing five elements:
+### Option Specifications
 
-1) a map with the option names picked out for you as keywords:
+`parse-cmds` uses [tools.cli](https://github.com/clojure/tools.cli) internally
+for parsing the options. See tools.cli document for option specifications.
 
-```clojure
-{:port    8080
- :host    "localhost"
- :verbose false}
-```
+### Options/Commands Summary
 
-2) a keyword to indicate the selected sub command:
+`:options-summary` and `:commands-summary` are minimal summary strings of the
+options and commands.
 
-```clojure
-:cmd1
-```
-
-3) a vector of the rest arguments:
-
-```clojure
-["--log-directory" "/tmp" "some-file"]
-```
-
-4) a documentation string to use to provide help:
-
-```clojure
-Usage: cmd [-v] {cmd1,cmd2} ...
-
- Options                      Default    Desc
- -------                      -------    ----
- -p, --port                              Listen on this port
- --host                       localhost  The hostname
- -v, --no-verbose, --verbose  true
-
- Command   Desc
- -------   ----
- cmd1      Description for cmd1
- cmd2      Description for cmd2
+Options:
 
 ```
-
-5) and a vector of candidate commands in similarity order:
-
-```clojure
-["cmd1" "cmd2"]
+  -p, --port PORT  80  Port number
+  -h, --help
 ```
 
-### Help document
-
-The fourth item in the resulting vector is a banner useful for providing help to the user:
-
-```clojure
-(let [[opts cmd args help cands]
-      (sub-command args
-                   :options  [["-h" "--help" "Show help" :default false :flag true]]
-                   :commands [["cmd1"] ["cmd2"]])]
-  (when (:help opts)
-    (println help)
-    (System/exit 0))
-  ...)
-```
-
-### Candidate commands
-
-The fifth item in the resulting vector is useful for suggesting candidate commands to the user. `candidate-message` generates message of the suggestion.
-
-```clojure
-(require '[clj-sub-command.core :refer [sub-command candidate-message]])
-
-(let [[opts cmd args help cands]
-      (sub-command args :commands [["cmd1"] ["cmd2"]])]
-  (case cmd
-    :cmd1 (println "cmd1!")
-    :cmd2 (println "cmd2!")
-    (println (str "Invalid command. See 'foo --help'.\n\n"
-                  (candidate-message cands)))))
-```
-
-with args of `["cmd3"]` will print
+Commands:
 
 ```
-Invalid command. See 'foo --help'.
+  up    Start server
+  down  Stop server
+```
 
-Did you mean one of these?
-        cmd1
-        cmd2
+### Candidate Commands
+
+`:candidates` vector has near commands in the specifications to the given
+command. These candidates are also contained in `:errors` vector as an error
+message when the given command is incorrect.
+
+```
+Unknown command: "upp"
+
+The most similar command is
+        up
 ```
 
 ## Example
 
-I recommend using clj-sub-command with another command-line parser for parsing the rest arguments.
-(e.g. [tools.cli](https://github.com/clojure/tools.cli))
+Using clj-sub-command with another command-line parser, such as tools.cli, is
+recommended for parsing the rest arguments.
 
 ```clojure
-(ns foo.core
+(ns example.core
   (:require [clojure.string :as string]
-            [clj-sub-command.core :refer [sub-command candidate-message]]
+            [clj-sub-command.core :refer [parse-cmds]]
             [clojure.tools.cli :refer [parse-opts]])
   (:gen-class))
 
@@ -144,54 +116,66 @@ I recommend using clj-sub-command with another command-line parser for parsing t
   (println msg)
   (System/exit status))
 
-;; "cmd1" command
+;; "up" subcommand
 
-(def cmd1-options
+(def up-options
   [["-v" "--verbose"]
    ["-h" "--help"]])
 
-(defn cmd1-usage [options-summary]
-  (->> ["Usage: foo cmd1 [options] file"
+(defn up-usage [options-summary]
+  (->> ["Usage: program-name up [options] file"
         ""
         "Options:"
         options-summary]
        (string/join \newline)))
 
-(defn cmd1 [args]
-  (let [{:keys [options arguments errors summary]} (parse-opts args cmd1-options)]
+(defn up [args]
+  (let [{:keys [options arguments errors summary]} (parse-opts args up-options)]
     (cond
-      (:help options) (exit 0 (cmd1-usage summary))
-      (not= (count arguments) 1) (exit 1 (cmd1-usage summary))
+      (:help options) (exit 0 (up-usage summary))
+      (not= (count arguments) 1) (exit 1 (up-usage summary))
       errors (exit 1 (error-msg errors)))
-    (if (:verbose opt)
+    (if (:verbose options)
       ...)))
 
-;; "cmd2" command
+;; "down" subcommand
 
-(def cmd2-options ...)
-(defn cmd2-usage [options-summary] ...)
-(defn cmd2 [args] ...)
+(def down-options ...)
+(defn down-usage [options-summary] ...)
+(defn down [args] ...)
 
 ;; main
 
+(def options
+  [["-h" "--help"]])
+
+(def commands
+  [["up" "Start server"]
+   ["down" "Stop server"]])
+
+(defn usage [options-summary commands-summary]
+  (->> ["Usage: program-name [--help] <command> [<args>]"
+        ""
+        "Options:"
+        options-summary
+        ""
+        "Commands:"
+        commands-summary]
+       (string/join \newline)))
+
 (defn -main [& args]
-  (let [[opts cmd args help cands]
-        (sub-command args
-                     "Usage: foo [-h] {cmd1,cmd2} ..."
-                     :options  [["-h" "--help" "Show help" :default false :flag true]]
-                     :commands [["cmd1" "Description for cmd1"]
-                                ["cmd2" "Description for cmd2"]])]
-    (when (:help opts)
-      (exit 0 help))
-    (case cmd
-      :cmd1 (cmd1 args)
-      :cmd2 (cmd2 args)
-      (exit 1 (str "Invalid command. See 'foo --help'.\n\n"
-                   (candidate-message cands))))))
+  (let [{:keys [options command arguments errors options-summary commands-summary]}
+        (parse-cmds args options commands)]
+    (cond
+      (:help options) (exit 0 (usage options-summary commands-summary))
+      errors (exit 1 (error-msg errors)))
+    (case command
+      :up   (up arguments)
+      :down (down arguments))))
 ```
 
 ## License
 
-Copyright © 2013-2017 Toshiki Takeuchi
+Copyright © 2013-2018 Toshiki Takeuchi
 
 Distributed under the Eclipse Public License, the same as Clojure.
