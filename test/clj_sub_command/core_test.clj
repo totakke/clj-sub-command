@@ -64,4 +64,14 @@
                          ["commit" "Commit"]
                          ["push" "Push"]])]
       (is (= (count (:errors m)) 2))
-      (is (= (:candidates m) ["status"])))))
+      (is (= (:candidates m) ["status"]))))
+  (testing "function options"
+    (let [m (parse-cmds []
+                        [["-a" "--alpha"] ["-b" "--beta"]]
+                        [["command1"] ["command2"]]
+                        :options-summary-fn (fn [specs]
+                                              (str "Options: " (s/join \| (map :long-opt specs))))
+                        :commands-summary-fn (fn [specs]
+                                               (str "Commands: " (s/join \, (map first specs)))))]
+      (is (= (:options-summary m) "Options: --alpha|--beta"))
+      (is (= (:commands-summary m) "Commands: command1,command2")))))

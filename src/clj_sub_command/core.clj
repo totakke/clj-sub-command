@@ -281,9 +281,23 @@
      :commands-summary A string containing a minimal subcommands summary
      :errors           A possible vector of error message strings generated
                        during parsing; nil when no errors exist
-     :candidates       A vector of candidate commands}"
-  [args option-specs command-specs]
-  (let [m (cli/parse-opts args option-specs :in-order true)
+     :candidates       A vector of candidate commands}
+
+  A few function options may be specified to influence the behavior of
+  parse-cmds:
+
+     :options-summary-fn   A function that receives the sequence of compiled
+                           option specs, and returns a custom option summary
+                           string.
+
+     :commands-summary-fn  A function that receives the sequence of compiled
+                           command specs, and returns a custom command summary
+                           string."
+  [args option-specs command-specs & options]
+  (let [{:keys [options-summary-fn commands-summary-fn]} (apply hash-map options)
+        m (cli/parse-opts args option-specs
+                          :in-order true
+                          :summary-fn options-summary-fn)
         cmd (first (:arguments m))
         scmds (set (map first command-specs))
         cands (candidates cmd scmds)
@@ -298,6 +312,6 @@
      :command (keyword (scmds cmd))
      :arguments (vec (drop 1 (:arguments m)))
      :options-summary (:summary m)
-     :commands-summary (summarize-cmds command-specs)
+     :commands-summary ((or commands-summary-fn summarize-cmds) command-specs)
      :errors (when (seq errors) errors)
      :candidates cands}))
