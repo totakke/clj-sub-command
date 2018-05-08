@@ -286,17 +286,23 @@
   A few function options may be specified to influence the behavior of
   parse-cmds:
 
-     :options-summary-fn   A function that receives the sequence of compiled
-                           option specs, and returns a custom option summary
-                           string.
+    :strict               Parse required option arguments strictly: if a
+                          required argument value matches any other option, it
+                          is considered to be missing (and you have a parse
+                          error).
 
-     :commands-summary-fn  A function that receives the sequence of compiled
-                           command specs, and returns a custom command summary
-                           string."
+    :options-summary-fn   A function that receives the sequence of compiled
+                          option specs, and returns a custom option summary
+                          string.
+
+    :commands-summary-fn  A function that receives the sequence of compiled
+                          command specs, and returns a custom command summary
+                          string."
   [args option-specs command-specs & options]
-  (let [{:keys [options-summary-fn commands-summary-fn]} (apply hash-map options)
+  (let [{:keys [strict options-summary-fn commands-summary-fn]} (apply hash-map options)
         m (cli/parse-opts args option-specs
                           :in-order true
+                          :strict strict
                           :summary-fn options-summary-fn)
         cmd (first (:arguments m))
         scmds (set (map first command-specs))
