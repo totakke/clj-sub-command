@@ -12,7 +12,7 @@ clj-sub-command is available as a Maven artifact from [Clojars](https://clojars.
 With Leiningen/Boot:
 
 ```clojure
-[clj-sub-command "0.4.0"]
+[clj-sub-command "0.4.1"]
 ```
 
 ## Usage
@@ -178,4 +178,4 @@ recommended for parsing the rest arguments.
 
 Copyright © 2013-2018 Toshiki Takeuchi
 
-Distributed under the Eclipse Public License, the same as Clojure.
+Distributed under the [Eclipse Public License](LICENSE), the same as Clojure.
