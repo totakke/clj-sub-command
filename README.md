@@ -83,6 +83,9 @@ Commands:
   down  Stop server
 ```
 
+`:options-summary-fn` and `:commands-summary-fn` may be supplied to `parse-cmds`
+if the default formatting is unsatisfactory.
+
 ### Candidate Commands
 
 `:candidates` vector has near commands in the specifications to the given
