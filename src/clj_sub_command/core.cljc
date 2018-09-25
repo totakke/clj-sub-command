@@ -1,9 +1,7 @@
-(ns ^{:author "Toshiki Takeuchi",
-      :doc "A simple subcommand parser for Clojure."}
-  clj-sub-command.core
-  (:refer-clojure :exclude [replace])
-  (:require [clojure.string :as s :refer [blank? join replace]]
-            [clojure.pprint :as pp :refer [pprint cl-format]]
+(ns clj-sub-command.core
+  "A simple subcommand parser for Clojure."
+  (:require [clojure.string :as s]
+            [clojure.pprint :as pp]
             [clojure.tools.cli :as cli]))
 
 (def ^:dynamic *max-normalized-levenshtein-distance*
@@ -31,7 +29,7 @@
         vs (for [d docs]
              (mapcat (fn [& x] (apply vector x)) max-cols d))]
     (doseq [v vs]
-      (cl-format true "~{ ~vA  ~vA  ~vA ~}" v)
+      (pp/cl-format true "~{ ~vA  ~vA  ~vA ~}" v)
       (prn))))
 
 (defn- banner-for-commands
@@ -45,7 +43,7 @@
         vs (for [d docs]
              (mapcat (fn [& x] (apply vector x)) max-cols d))]
     (doseq [v vs]
-      (cl-format true "~{ ~vA  ~vA ~}" v)
+      (pp/cl-format true "~{ ~vA  ~vA ~}" v)
       (prn))))
 
 (defn- banner-for [desc options commands]
@@ -54,20 +52,19 @@
     (println))
   (banner-for-options options)
   (println)
-  (banner-for-commands commands)
-)
+  (banner-for-commands commands))
 
 (defn- name-for [k]
-  (replace k #"^--no-|^--\[no-\]|^--|^-" ""))
+  (s/replace k #"^--no-|^--\[no-\]|^--|^-" ""))
 
 (defn- flag-for [^String v]
-  (not (.startsWith v "--no-")))
+  (not (s/starts-with? v "--no-")))
 
 (defn- opt? [^String x]
-  (.startsWith x "-"))
+  (s/starts-with? x "-"))
 
 (defn- flag? [^String x]
-  (.startsWith x "--[no-]"))
+  (s/starts-with? x "--[no-]"))
 
 (defn- end-of-args? [x]
   (= "--" x))
@@ -98,32 +95,37 @@
       (let [opt  (first args)
             spec (option-for opt specs)]
         (cond
-         (end-of-args? opt)
-         (recur options (into extra-args (vec (rest args))) nil)
+          (end-of-args? opt)
+          (recur options (into extra-args (vec (rest args))) nil)
 
-         (and (opt? opt) (nil? spec))
-         (throw (Exception. (str "'" opt "' is not a valid argument")))
+          (and (opt? opt) (nil? spec))
+          (throw (Exception. (str "'" opt "' is not a valid argument")))
 
-         (and (opt? opt) (spec :flag))
-         (recur ((spec :assoc-fn) options (spec :name) (flag-for opt))
-                extra-args
-                (rest args))
+          (and (opt? opt) (spec :flag))
+          (recur ((spec :assoc-fn) options (spec :name) (flag-for opt))
+                 extra-args
+                 (rest args))
 
-         (opt? opt)
-         (recur ((spec :assoc-fn) options (spec :name) ((spec :parse-fn) (second args)))
-                extra-args
-                (drop 2 args))
+          (opt? opt)
+          (recur ((spec :assoc-fn) options (spec :name) ((spec :parse-fn) (second args)))
+                 extra-args
+                 (drop 2 args))
 
-         :default
-         (recur options (conj extra-args (first args)) (rest args)))))))
+          :default
+          (recur options (conj extra-args (first args)) (rest args)))))))
 
 (defn- switches-for
   [switches flag]
   (-> (for [^String s switches]
         (cond
-         (and flag (flag? s))            [(replace s #"\[no-\]" "no-") (replace s #"\[no-\]" "")]
-         (and flag (.startsWith s "--")) [(replace s #"--" "--no-") s]
-         :default                        [s]))
+          (and flag (flag? s))
+          [(s/replace s #"\[no-\]" "no-") (s/replace s #"\[no-\]" "")]
+
+          (and flag (s/starts-with? s "--"))
+          [(s/replace s #"--" "--no-") s]
+
+          :default
+          [s]))
       flatten))
 
 (defn- generate-option
@@ -152,8 +154,8 @@
 (defn- generate-command
   [raw-cmd]
   (let [[name doc] raw-cmd]
-   {:command (keyword name)
-    :docs doc}))
+    {:command (keyword name)
+     :docs doc}))
 
 (defn- group-by-optargs
   [args options]
@@ -198,8 +200,7 @@
                            (+ ((d i)
                                (- j 1)) 1)
                            (+ ((d (- i 1))
-                               (- j 1)) 1)))
-                      }}))
+                               (- j 1)) 1)))}}))
                init
                (for [j (range 1 (+ 1 n))
                      i (range 1 (+ 1 m))] [i j]))]
@@ -236,7 +237,7 @@
          (cons (if (= (count candidates) 1)
                  "The most similar command is"
                  "The most similar commands are"))
-         (join \newline))))
+         (s/join \newline))))
 
 (defn sub-command
   "THIS IS A LEGACY FUNCTION and may be deprecated in the future. Please use
