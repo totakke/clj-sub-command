@@ -9,3 +9,8 @@ jdk:
   - openjdk7
   - openjdk8
 script: lein with-profile dev:1.9 test
+jobs:
+  include:
+    - stage: cljs-test
+      jdk: oraclejdk8
+      script: lein doo node test once
