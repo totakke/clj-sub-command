@@ -8,7 +8,8 @@
                  [org.clojure/tools.cli "0.4.1"]]
   :plugins [[lein-cljsbuild "1.1.7"]
             [lein-doo "0.1.10"]]
-  :profiles {:1.9 {:dependencies [[org.clojure/clojure "1.9.0"]]}}
+  :profiles {:1.9 {:dependencies [[org.clojure/clojure "1.9.0"]]}
+             :1.10 {:dependencies [[org.clojure/clojure "1.10.0-alpha8"]]}}
   :cljsbuild {:builds [{:id "test"
                         :source-paths ["src" "test"]
                         :compiler {:output-to "target/testable.js"
