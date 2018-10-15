@@ -10,10 +10,16 @@ A simple subcommand parser for Clojure.
 
 clj-sub-command is available as a Maven artifact from [Clojars](https://clojars.org/clj-sub-command).
 
-With Leiningen/Boot:
+Clojure CLI/deps.edn:
 
 ```clojure
-[clj-sub-command "0.4.1"]
+clj-sub-command {:mvn/version "0.5.0"}
+```
+
+Leiningen/Boot:
+
+```clojure
+[clj-sub-command "0.5.0"]
 ```
 
 ## Usage
