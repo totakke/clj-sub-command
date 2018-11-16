@@ -62,8 +62,8 @@ to produce the map:
                       -h, --help"
  :commands-summary "  up    Start server
                       down  Stop server"
- :errors nil
- :candidates ["up"]}
+ :errors           nil
+ :candidates       ["up"]}
 ```
 
 ### Option Specifications
