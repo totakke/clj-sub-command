@@ -257,14 +257,26 @@
                                            (set)))]
     [options command (vec cmdspecs) banner candidates]))
 
+(defn- compile-command-spec
+  [command-spec]
+  (let [[cmd desc & {:keys [id]}] command-spec]
+    {:id (or id (keyword cmd))
+     :cmd cmd
+     :desc desc}))
+
+(defn- compile-command-specs
+  [command-specs]
+  (map compile-command-spec command-specs))
+
 (defn summarize-cmds
   "Reduces subcommands specs into a subcommands summary for printing at a
   terminal."
   [command-specs]
   (if (seq command-specs)
-    (let [lens (apply map (fn [& cols]
-                            (apply max (map count cols))) command-specs)]
-      (->> command-specs
+    (let [parts (map (juxt :cmd :desc) command-specs)
+          lens (apply map (fn [& cols]
+                            (apply max (map count cols))) parts)]
+      (->> parts
            (map #(s/trimr (pp/cl-format nil "~{  ~vA  ~vA~}" (interleave lens %))))
            (s/join \newline)))
     ""))
@@ -306,9 +318,11 @@
                           :strict strict
                           :summary-fn options-summary-fn)
         cmd (first (:arguments m))
-        scmds (set (map first command-specs))
+        command-specs (compile-command-specs command-specs)
+        scmds (set (map :cmd command-specs))
+        scmd (scmds cmd)
         cands (candidates cmd scmds)
-        error (when-not (scmds cmd)
+        error (when-not scmd
                 (str "Unknown command: " (pr-str (or cmd ""))
                      (when (seq cands)
                        (str "\n\n" (candidate-message cands)))))
@@ -316,7 +330,7 @@
                  (conj (or (:errors m) []) error)
                  (:errors m))]
     {:options (:options m)
-     :command (keyword (scmds cmd))
+     :command (:id (first (filter #(= (:cmd %) scmd) command-specs)))
      :arguments (vec (drop 1 (:arguments m)))
      :options-summary (:summary m)
      :commands-summary ((or commands-summary-fn summarize-cmds) command-specs)

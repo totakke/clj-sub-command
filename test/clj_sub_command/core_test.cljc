@@ -35,6 +35,13 @@
     (testing "for candidates"
       (is (= cands ["command1" "command2"])))))
 
+(deftest compile-command-specs-test
+  (is (= (#'clj-sub-command.core/compile-command-specs [["command1" "desc for command1"]
+                                                        ["command2" "desc for command2"
+                                                         :id :cmd2]])
+         [{:id :command1, :desc "desc for command1", :cmd "command1"}
+          {:id :cmd2, :desc "desc for command2", :cmd "command2"}])))
+
 (deftest parse-cmds-test
   (testing "w/o options"
     (let [m (parse-cmds ["command1" "file1" "file2"]
@@ -77,6 +84,6 @@
                         :options-summary-fn (fn [specs]
                                               (str "Options: " (s/join \| (map :long-opt specs))))
                         :commands-summary-fn (fn [specs]
-                                               (str "Commands: " (s/join \, (map first specs)))))]
+                                               (str "Commands: " (s/join \, (map :cmd specs)))))]
       (is (= (:options-summary m) "Options: --alpha|--beta"))
       (is (= (:commands-summary m) "Commands: command1,command2")))))
