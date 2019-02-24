@@ -13,13 +13,13 @@ clj-sub-command is available as a Maven artifact from [Clojars](https://clojars.
 Clojure CLI/deps.edn:
 
 ```clojure
-clj-sub-command {:mvn/version "0.5.0"}
+clj-sub-command {:mvn/version "0.5.1"}
 ```
 
 Leiningen/Boot:
 
 ```clojure
-[clj-sub-command "0.5.0"]
+[clj-sub-command "0.5.1"]
 ```
 
 ## Usage
@@ -39,7 +39,8 @@ Leiningen/Boot:
 ;; Subcommands and descriptions
 (def commands
   [["up" "Start server"]
-   ["down" "Stop server"]])
+   ["down" "Stop server"
+    :id :stop]])
 
 (defn -main [& args]
   (parse-cmds args options commands))
@@ -186,6 +187,6 @@ recommended for parsing the rest arguments.
 
 ## License
 
-Copyright © 2013-2018 Toshiki Takeuchi
+Copyright © 2013-2019 Toshiki Takeuchi
 
 Distributed under the [Eclipse Public License](LICENSE), the same as Clojure.
