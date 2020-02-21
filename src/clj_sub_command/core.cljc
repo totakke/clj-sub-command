@@ -1,13 +1,17 @@
 (ns clj-sub-command.core
   "A simple subcommand parser for Clojure."
   (:require [clojure.string :as s]
-            [clojure.pprint :as pp]
-            [clojure.tools.cli :as cli]))
+            [clojure.tools.cli :as cli]
+            #?(:cljs goog.string.format)))
 
 (def ^:dynamic *max-normalized-levenshtein-distance*
   "Max value of normalized levenshtein distance used in searching candidate
   commands. The default value is 0.5."
   0.5)
+
+(defn- make-format
+  [lens]
+  (s/join (map #(str "  %" (if-not (zero? %) (str "-" %)) "s") lens)))
 
 (defn- build-option-doc [{:keys [switches docs default]}]
   [(apply str (interpose ", " switches))
@@ -17,6 +21,11 @@
 (defn- build-command-doc [{:keys [command docs]}]
   [(name command)
    (or docs "")])
+
+#?(:cljs
+   (defn format
+     [fmt & args]
+     (apply goog.string.format fmt args)))
 
 (defn- banner-for-options
   [options]
@@ -29,7 +38,8 @@
         vs (for [d docs]
              (mapcat (fn [& x] (apply vector x)) max-cols d))]
     (doseq [v vs]
-      (pp/cl-format true "~{ ~vA  ~vA  ~vA ~}" v)
+      (let [fmt (make-format (take-nth 2 v))]
+        (print (apply format fmt (take-nth 2 (rest v)))))
       (prn))))
 
 (defn- banner-for-commands
@@ -43,7 +53,8 @@
         vs (for [d docs]
              (mapcat (fn [& x] (apply vector x)) max-cols d))]
     (doseq [v vs]
-      (pp/cl-format true "~{ ~vA  ~vA ~}" v)
+      (let [fmt (make-format (take-nth 2 v))]
+        (print (apply format fmt (take-nth 2 (rest v)))))
       (prn))))
 
 (defn- banner-for [desc options commands]
@@ -99,7 +110,8 @@
           (recur options (into extra-args (vec (rest args))) nil)
 
           (and (opt? opt) (nil? spec))
-          (throw (Exception. (str "'" opt "' is not a valid argument")))
+          (throw #?(:clj (Exception. (str "'" opt "' is not a valid argument"))
+                    :cljs (js/Error. (str "'" opt "' is not a valid argument"))))
 
           (and (opt? opt) (spec :flag))
           (recur ((spec :assoc-fn) options (spec :name) (flag-for opt))
@@ -275,9 +287,10 @@
   (if (seq command-specs)
     (let [parts (map (juxt :cmd :desc) command-specs)
           lens (apply map (fn [& cols]
-                            (apply max (map count cols))) parts)]
+                            (apply max (map count cols))) parts)
+          fmt (make-format lens)]
       (->> parts
-           (map #(s/trimr (pp/cl-format nil "~{  ~vA  ~vA~}" (interleave lens %))))
+           (map #(s/trimr (apply format fmt %)))
            (s/join \newline)))
     ""))
 
