@@ -317,6 +317,9 @@
                           is considered to be missing (and you have a parse
                           error).
 
+    :allow-empty-command  Allow an empty command if true. By default, the empty
+                          command causes \"Unknown command\" error.
+
     :options-summary-fn   A function that receives the sequence of compiled
                           option specs, and returns a custom option summary
                           string.
@@ -325,7 +328,8 @@
                           command specs, and returns a custom command summary
                           string."
   [args option-specs command-specs & options]
-  (let [{:keys [strict options-summary-fn commands-summary-fn]} (apply hash-map options)
+  (let [{:keys [strict allow-empty-command options-summary-fn
+                commands-summary-fn]} (apply hash-map options)
         m (cli/parse-opts args option-specs
                           :in-order true
                           :strict strict
@@ -335,7 +339,7 @@
         scmds (set (map :cmd command-specs))
         scmd (scmds cmd)
         cands (candidates cmd scmds)
-        error (when-not scmd
+        error (when-not (or scmd allow-empty-command)
                 (str "Unknown command: " (pr-str (or cmd ""))
                      (when (seq cands)
                        (str "\n\n" (candidate-message cands)))))

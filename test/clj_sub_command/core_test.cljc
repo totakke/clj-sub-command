@@ -76,14 +76,22 @@
                          ["commit" "Commit"]
                          ["push" "Push"]])]
       (is (= (count (:errors m)) 2))
-      (is (= (:candidates m) ["status"]))))
+      (is (= (:candidates m) ["status"])))
+    (let [m (parse-cmds []
+                        [["-v" "--verbose"]]
+                        [["status" "Status"]
+                         ["commit" "Commit"]
+                         ["push" "Push"]])]
+      (is (= (:errors m) ["Unknown command: \"\""]))))
   (testing "function options"
     (let [m (parse-cmds []
                         [["-a" "--alpha"] ["-b" "--beta"]]
                         [["command1"] ["command2"]]
+                        :allow-empty-command true
                         :options-summary-fn (fn [specs]
                                               (str "Options: " (s/join \| (map :long-opt specs))))
                         :commands-summary-fn (fn [specs]
                                                (str "Commands: " (s/join \, (map :cmd specs)))))]
+      (is (nil? (:errors m)))
       (is (= (:options-summary m) "Options: --alpha|--beta"))
       (is (= (:commands-summary m) "Commands: command1,command2")))))
