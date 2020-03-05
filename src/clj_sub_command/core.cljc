@@ -339,7 +339,7 @@
         scmds (set (map :cmd command-specs))
         scmd (scmds cmd)
         cands (candidates cmd scmds)
-        error (when-not (or scmd allow-empty-command)
+        error (when-not (or scmd (and allow-empty-command (empty? cmd)))
                 (str "Unknown command: " (pr-str (or cmd ""))
                      (when (seq cands)
                        (str "\n\n" (candidate-message cands)))))

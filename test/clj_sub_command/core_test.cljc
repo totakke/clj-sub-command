@@ -94,4 +94,9 @@
                                                (str "Commands: " (s/join \, (map :cmd specs)))))]
       (is (nil? (:errors m)))
       (is (= (:options-summary m) "Options: --alpha|--beta"))
-      (is (= (:commands-summary m) "Commands: command1,command2")))))
+      (is (= (:commands-summary m) "Commands: command1,command2")))
+    (let [m (parse-cmds ["command3"]
+                        []
+                        [["command1"] ["command2"]]
+                        :allow-empty-command true)]
+      (is (= (count (:errors m)) 1)))))
