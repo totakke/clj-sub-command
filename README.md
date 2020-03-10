@@ -13,13 +13,13 @@ clj-sub-command is available as a Maven artifact from [Clojars](https://clojars.
 Clojure CLI/deps.edn:
 
 ```clojure
-clj-sub-command {:mvn/version "0.5.1"}
+clj-sub-command {:mvn/version "0.6.0"}
 ```
 
 Leiningen/Boot:
 
 ```clojure
-[clj-sub-command "0.5.1"]
+[clj-sub-command "0.6.0"]
 ```
 
 ## Usage
@@ -187,6 +187,6 @@ recommended for parsing the rest arguments.
 
 ## License
 
-Copyright © 2013-2019 Toshiki Takeuchi
+Copyright © 2013-2020 Toshiki Takeuchi
 
 Distributed under the [Eclipse Public License](LICENSE), the same as Clojure.
