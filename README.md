@@ -2,7 +2,7 @@
 
 [![Clojars Project](https://img.shields.io/clojars/v/clj-sub-command.svg)](https://clojars.org/clj-sub-command)
 [![cljdoc](https://cljdoc.xyz/badge/clj-sub-command)](https://cljdoc.xyz/jump/release/clj-sub-command)
-[![Build Status](https://travis-ci.org/totakke/clj-sub-command.svg?branch=master)](https://travis-ci.org/totakke/clj-sub-command)
+[![build](https://github.com/totakke/clj-sub-command/actions/workflows/build.yml/badge.svg)](https://github.com/totakke/clj-sub-command/actions/workflows/build.yml)
 
 A simple subcommand parser for Clojure.
 
@@ -187,6 +187,6 @@ recommended for parsing the rest arguments.
 
 ## License
 
-Copyright © 2013-2020 Toshiki Takeuchi
+Copyright © 2013 Toshiki Takeuchi
 
 Distributed under the [Eclipse Public License](LICENSE), the same as Clojure.

@@ -1,0 +1,27 @@
+name: build
+
+on: push
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'adopt'
+        java-version: '17'
+
+    - name: Setup Clojure
+      uses: DeLaGuardo/setup-clojure@12.3
+      with:
+        lein: 2.10.0
+
+    - name: Run tests
+      run: lein with-profile +dev:+1.8:+1.9 test
+
+    - name: Run cljs tests
+      run: lein doo node test once
