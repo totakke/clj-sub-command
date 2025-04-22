@@ -1,7 +1,7 @@
 # clj-sub-command
 
 [![Clojars Project](https://img.shields.io/clojars/v/clj-sub-command.svg)](https://clojars.org/clj-sub-command)
-[![cljdoc](https://cljdoc.xyz/badge/clj-sub-command)](https://cljdoc.xyz/jump/release/clj-sub-command)
+[![cljdoc badge](https://cljdoc.org/badge/clj-sub-command/clj-sub-command)](https://cljdoc.org/d/clj-sub-command/clj-sub-command)
 [![build](https://github.com/totakke/clj-sub-command/actions/workflows/build.yml/badge.svg)](https://github.com/totakke/clj-sub-command/actions/workflows/build.yml)
 
 A simple subcommand parser for Clojure.
@@ -13,7 +13,7 @@ clj-sub-command is available as a Maven artifact from [Clojars](https://clojars.
 Clojure CLI/deps.edn:
 
 ```clojure
-clj-sub-command {:mvn/version "0.6.0"}
+clj-sub-command/clj-sub-command {:mvn/version "0.6.0"}
 ```
 
 Leiningen/Boot:
@@ -48,8 +48,8 @@ Leiningen/Boot:
 
 Execute the command line:
 
-```console
-$ my-program -p8080 --help up --log-directory /tmp some-file
+```sh
+my-program -p8080 --help up --log-directory /tmp some-file
 ```
 
 to produce the map:
@@ -79,14 +79,14 @@ options and commands.
 
 Options:
 
-```
+```text
   -p, --port PORT  80  Port number
   -h, --help
 ```
 
 Commands:
 
-```
+```text
   up    Start server
   down  Stop server
 ```
@@ -100,7 +100,7 @@ if the default formatting is unsatisfactory.
 command. These candidates are also contained in `:errors` vector as an error
 message when the given command is incorrect.
 
-```
+```text
 Unknown command: "upp"
 
 The most similar command is
