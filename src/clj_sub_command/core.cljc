@@ -271,10 +271,11 @@
 
 (defn- compile-command-spec
   [command-spec]
-  (let [[cmd desc & {:keys [id]}] command-spec]
+  (let [[cmd desc & {:keys [id group]}] command-spec]
     {:id (or id (keyword cmd))
      :cmd cmd
-     :desc desc}))
+     :desc desc
+     :group group}))
 
 (defn- compile-command-specs
   [command-specs]
@@ -282,16 +283,26 @@
 
 (defn summarize-cmds
   "Reduces subcommands specs into a subcommands summary for printing at a
-  terminal."
+  terminal. When any spec carries a :group string, renders kubectl-style group
+  headings; ungrouped specs fall under a \"Commands:\" heading. Column widths
+  are computed across all specs so commands align across groups."
   [command-specs]
   (if (seq command-specs)
     (let [parts (map (juxt :cmd :desc) command-specs)
           lens (apply map (fn [& cols]
                             (apply max (map count cols))) parts)
-          fmt (make-format lens)]
-      (->> parts
-           (map #(s/trimr (apply format fmt %)))
-           (s/join \newline)))
+          fmt (make-format lens)
+          format-line #(s/trimr (apply format fmt ((juxt :cmd :desc) %)))]
+      (if (some :group command-specs)
+        (let [titles (distinct (map #(or (:group %) "Commands") command-specs))
+              by-title (group-by #(or (:group %) "Commands") command-specs)]
+          (->> titles
+               (map (fn [title]
+                      (->> (cons (str title ":")
+                                 (map format-line (by-title title)))
+                           (s/join \newline))))
+               (s/join "\n\n")))
+        (s/join \newline (map format-line command-specs))))
     ""))
 
 (defn parse-cmds
@@ -308,6 +319,12 @@
      :errors           A possible vector of error message strings generated
                        during parsing; nil when no errors exist
      :candidates       A vector of candidate commands}
+
+  Each command spec is `[name desc & {:keys [id group]}]`. When any spec has a
+  :group string, the default :commands-summary renders kubectl-style group
+  headings (\"<group>:\" lines with the matching commands indented beneath);
+  ungrouped specs fall under a \"Commands:\" heading. Groups appear in
+  first-appearance order.
 
   A few function options may be specified to influence the behavior of
   parse-cmds:
