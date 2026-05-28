@@ -42,42 +42,51 @@
                                                          :id :cmd2]
                                                         ["command3" "desc for command3"
                                                          :group "Group A"]])
-         [{:id :command1, :desc "desc for command1", :cmd "command1", :group nil}
+         [{:id :command1, :desc "desc for command1", :cmd "command1",
+           :group nil}
           {:id :cmd2, :desc "desc for command2", :cmd "command2", :group nil}
-          {:id :command3, :desc "desc for command3", :cmd "command3", :group "Group A"}])))
+          {:id :command3, :desc "desc for command3", :cmd "command3",
+           :group "Group A"}])))
 
 (deftest summarize-cmds-test
   (let [compile-specs #'clj-sub-command.core/compile-command-specs]
     (testing "empty specs"
       (is (= (summarize-cmds []) "")))
+
     (testing "ungrouped specs render flat (no headings, backward compatible)"
-      (is (= (summarize-cmds (compile-specs [["up"   "Start server"]
+      (is (= (summarize-cmds (compile-specs [["up" "Start server"]
                                              ["down" "Stop server"]]))
              (str "  up    Start server\n"
                   "  down  Stop server"))))
+
     (testing "all-grouped specs render with headings"
-      (is (= (summarize-cmds (compile-specs [["create" "Create a resource" :group "Basic"]
-                                             ["expose" "Expose a service"  :group "Basic"]
-                                             ["rollout" "Manage rollout"   :group "Deploy"]]))
+      (is (= (summarize-cmds
+              (compile-specs [["create" "Create a resource" :group "Basic"]
+                              ["expose" "Expose a service" :group "Basic"]
+                              ["rollout" "Manage rollout" :group "Deploy"]]))
              (str "Basic:\n"
                   "  create   Create a resource\n"
                   "  expose   Expose a service\n"
                   "\n"
                   "Deploy:\n"
                   "  rollout  Manage rollout"))))
+
     (testing "groups appear in first-appearance order, not alphabetical"
-      (let [out (summarize-cmds (compile-specs [["zoo"    "z"  :group "Zeta"]
-                                                ["alpha"  "a"  :group "Alpha"]]))]
+      (let [out (summarize-cmds
+                 (compile-specs [["zoo" "z" :group "Zeta"]
+                                 ["alpha" "a" :group "Alpha"]]))]
         (is (s/starts-with? out "Zeta:"))
         (is (< (s/index-of out "Zeta:") (s/index-of out "Alpha:")))))
+
     (testing "ungrouped specs in a mixed list fall under \"Commands:\""
-      (is (= (summarize-cmds (compile-specs [["create" "Create"     :group "Basic"]
-                                             ["help"   "Show help"]]))
+      (is (= (summarize-cmds (compile-specs [["create" "Create" :group "Basic"]
+                                             ["help" "Show help"]]))
              (str "Basic:\n"
                   "  create  Create\n"
                   "\n"
-                  "Commands:\n"
+                  "Other Commands:\n"
                   "  help    Show help"))))
+
     (testing "command column aligns across groups"
       (let [out (summarize-cmds (compile-specs [["a"          "short" :group "G1"]
                                                 ["very-long"  "long"  :group "G2"]]))]

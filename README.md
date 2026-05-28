@@ -96,8 +96,7 @@ if the default formatting is unsatisfactory.
 
 ### Grouped Commands
 
-Commands can be grouped (kubectl-style) by adding a `:group` keyword to each
-command spec:
+Commands can be grouped by adding a `:group` keyword to each command spec:
 
 ```clojure
 (def commands
@@ -109,8 +108,9 @@ command spec:
 ```
 
 `:commands-summary` then renders each group under its own heading, with
-ungrouped commands collected under a final `Commands:` heading. Groups appear
-in first-appearance order, and the command column is aligned across all groups:
+ungrouped commands collected under a final `Other Commands:` heading. Groups
+appear in first-appearance order, and the command column is aligned across all
+groups:
 
 ```text
 Basic Commands:
@@ -121,7 +121,7 @@ Deploy Commands:
   rollout  Manage the rollout
   scale    Resize a deployment
 
-Commands:
+Other Commands:
   help     Show help
 ```
 

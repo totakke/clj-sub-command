@@ -283,9 +283,9 @@
 
 (defn summarize-cmds
   "Reduces subcommands specs into a subcommands summary for printing at a
-  terminal. When any spec carries a :group string, renders kubectl-style group
-  headings; ungrouped specs fall under a \"Commands:\" heading. Column widths
-  are computed across all specs so commands align across groups."
+  terminal. When any spec carries a :group string, renders group headings;
+  ungrouped specs fall under a \"Other Commands:\" heading. Column widths are
+  computed across all specs so commands align across groups."
   [command-specs]
   (if (seq command-specs)
     (let [parts (map (juxt :cmd :desc) command-specs)
@@ -294,8 +294,8 @@
           fmt (make-format lens)
           format-line #(s/trimr (apply format fmt ((juxt :cmd :desc) %)))]
       (if (some :group command-specs)
-        (let [titles (distinct (map #(or (:group %) "Commands") command-specs))
-              by-title (group-by #(or (:group %) "Commands") command-specs)]
+        (let [titles (distinct (map #(or (:group %) "Other Commands") command-specs))
+              by-title (group-by #(or (:group %) "Other Commands") command-specs)]
           (->> titles
                (map (fn [title]
                       (->> (cons (str title ":")
