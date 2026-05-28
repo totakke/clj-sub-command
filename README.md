@@ -94,6 +94,37 @@ Commands:
 `:options-summary-fn` and `:commands-summary-fn` may be supplied to `parse-cmds`
 if the default formatting is unsatisfactory.
 
+### Grouped Commands
+
+Commands can be grouped by adding a `:group` keyword to each command spec:
+
+```clojure
+(def commands
+  [["create"  "Create a resource"   :group "Basic Commands"]
+   ["expose"  "Expose a service"    :group "Basic Commands"]
+   ["rollout" "Manage the rollout"  :group "Deploy Commands"]
+   ["scale"   "Resize a deployment" :group "Deploy Commands"]
+   ["help"    "Show help"]])
+```
+
+`:commands-summary` then renders each group under its own heading, with
+ungrouped commands collected under a final `Other Commands:` heading. Groups
+appear in first-appearance order, and the command column is aligned across all
+groups:
+
+```text
+Basic Commands:
+  create   Create a resource
+  expose   Expose a service
+
+Deploy Commands:
+  rollout  Manage the rollout
+  scale    Resize a deployment
+
+Other Commands:
+  help     Show help
+```
+
 ### Candidate Commands
 
 `:candidates` vector has near commands in the specifications to the given
