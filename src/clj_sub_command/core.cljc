@@ -283,24 +283,30 @@
 
 (defn summarize-cmds
   "Reduces subcommands specs into a subcommands summary for printing at a
-  terminal. When any spec carries a :group string, renders group headings;
-  ungrouped specs fall under a \"Other Commands:\" heading. Column widths are
-  computed across all specs so commands align across groups."
+  terminal. When any spec carries a :group string, renders group headings in
+  first-appearance order; specs without a :group fall under a trailing
+  \"Other Commands:\" heading regardless of where they appear in the input.
+  Column widths are computed across all specs so commands align across groups."
   [command-specs]
   (if (seq command-specs)
     (let [parts (map (juxt :cmd :desc) command-specs)
           lens (apply map (fn [& cols]
                             (apply max (map count cols))) parts)
           fmt (make-format lens)
-          format-line #(s/trimr (apply format fmt ((juxt :cmd :desc) %)))]
-      (if (some :group command-specs)
-        (let [titles (distinct (map #(or (:group %) "Other Commands") command-specs))
-              by-title (group-by #(or (:group %) "Other Commands") command-specs)]
-          (->> titles
-               (map (fn [title]
-                      (->> (cons (str title ":")
-                                 (map format-line (by-title title)))
-                           (s/join \newline))))
+          format-line #(s/trimr (apply format fmt ((juxt :cmd :desc) %)))
+          grouped (filter :group command-specs)
+          ungrouped (remove :group command-specs)]
+      (if (seq grouped)
+        (let [titles (distinct (map :group grouped))
+              by-title (group-by :group grouped)
+              blocks (concat (for [title titles]
+                               (cons (str title ":")
+                                     (map format-line (by-title title))))
+                             (when (seq ungrouped)
+                               [(cons "Other Commands:"
+                                      (map format-line ungrouped))]))]
+          (->> blocks
+               (map #(s/join \newline %))
                (s/join "\n\n")))
         (s/join \newline (map format-line command-specs))))
     ""))
@@ -321,10 +327,10 @@
      :candidates       A vector of candidate commands}
 
   Each command spec is `[name desc & {:keys [id group]}]`. When any spec has a
-  :group string, the default :commands-summary renders kubectl-style group
-  headings (\"<group>:\" lines with the matching commands indented beneath);
-  ungrouped specs fall under a \"Commands:\" heading. Groups appear in
-  first-appearance order.
+  :group string, the default :commands-summary renders group headings
+  (\"<group>:\" lines with the matching commands indented beneath); specs
+  without a :group fall under a trailing \"Other Commands:\" heading. Groups
+  appear in first-appearance order.
 
   A few function options may be specified to influence the behavior of
   parse-cmds:

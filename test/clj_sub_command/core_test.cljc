@@ -78,7 +78,7 @@
         (is (s/starts-with? out "Zeta:"))
         (is (< (s/index-of out "Zeta:") (s/index-of out "Alpha:")))))
 
-    (testing "ungrouped specs in a mixed list fall under \"Commands:\""
+    (testing "ungrouped specs in a mixed list fall under \"Other Commands:\""
       (is (= (summarize-cmds (compile-specs [["create" "Create" :group "Basic"]
                                              ["help" "Show help"]]))
              (str "Basic:\n"
@@ -86,6 +86,20 @@
                   "\n"
                   "Other Commands:\n"
                   "  help    Show help"))))
+
+    (testing "\"Other Commands\" is pinned to the end, regardless of input order"
+      (is (= (summarize-cmds (compile-specs [["help"   "Show help"]
+                                             ["create" "Create" :group "Basic"]]))
+             (str "Basic:\n"
+                  "  create  Create\n"
+                  "\n"
+                  "Other Commands:\n"
+                  "  help    Show help"))))
+
+    (testing "single group renders with a heading"
+      (is (= (summarize-cmds (compile-specs [["create" "Create" :group "Basic"]]))
+             (str "Basic:\n"
+                  "  create  Create"))))
 
     (testing "command column aligns across groups"
       (let [out (summarize-cmds (compile-specs [["a"          "short" :group "G1"]
