@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Support command grouping in summary output. [#3](https://github.com/totakke/clj-sub-command/pull/3)
+- Document :allow-empty-command option in README. [#5](https://github.com/totakke/clj-sub-command/pull/5)
 
 ## [1.0.0] - 2026-05-27
 
