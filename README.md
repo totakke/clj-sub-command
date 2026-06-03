@@ -125,6 +125,21 @@ Other Commands:
   help     Show help
 ```
 
+### Allowing an Empty Command
+
+By default, `parse-cmds` treats a missing subcommand as an `Unknown command: ""`
+error. Pass `:allow-empty-command true` to permit invocations without a
+subcommand (for example, when `--help` alone should be valid):
+
+```clojure
+(parse-cmds ["--help"] options commands :allow-empty-command true)
+;;=> {:options    {:help true}
+;;    :command    nil
+;;    :arguments  []
+;;    :errors     nil
+;;    ...}
+```
+
 ### Candidate Commands
 
 `:candidates` vector has near commands in the specifications to the given
